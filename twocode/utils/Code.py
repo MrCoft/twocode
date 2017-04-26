@@ -40,6 +40,26 @@ def skip_exc_info(exc_info=None, depth=0):
         tb = tbs[depth]
     return exc_class, exc, tb
 
+def skip_traceback(depth):
+    if depth >= 0:
+        depth += 1
+    def wrap(f):
+        def wrapped(*args, **kwargs):
+            exc_class, exc, tb = None, None, None
+            try:
+                value = f(*args, **kwargs)
+            except:
+                exc_class, exc, tb = skip_exc_info(depth=depth)
+            if exc:
+                internal_exception = exc_class(*exc.args).with_traceback(tb)
+                try:
+                    raise internal_exception
+                finally:
+                    tb = internal_exception = None # gc
+            return value
+        return wrapped
+    return wrap
+
 def filter(*fs):
     def f(item):
         for f in fs:

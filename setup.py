@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-from setuptools import setup
+from setuptools import setup, find_packages
 
 import twocode
 
 setup(
     name="Twocode",
     version=twocode.__version__,
-    packages=["twocode"],
+    packages=find_packages(),
 
     entry_points={
         "console_scripts": [

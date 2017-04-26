@@ -1,5 +1,21 @@
 import sys
 import io
+import inspect
+
+class Object(dict):
+    def __init__(self, **kwargs):
+        dict.__init__(self, kwargs)
+        self.__dict__ = self
+    def __getstate__(self):
+        return self
+    def __setstate__(self, state):
+        self.update(state)
+        self.__dict__ = self
+
+    def args_pass(self):
+        frame, filename, lineno, function, code_context, index = inspect.stack(0)[1]
+        scope = redict(dict(frame.f_locals), ["__class__", "self"])
+        self.update(scope)
 
 class Context:
     def __init__(self):
@@ -38,26 +54,6 @@ class cond_context(Context):
         if self.leave:
             self.leave(type, value, traceback)
 
-def redict(d, remove=None, add=None):
-    if remove is None: remove = []
-    if add is None: add = []
-    d = dict(d)
-    for var in remove:
-        if var in d:
-            del d[var]
-    if add:
-        d = {key: d[key] for key in add if key in d}
-    return d
-
-def free_var(var, scope):
-    free_var = var
-    n = 2
-    while free_var in scope:
-        free_var = var + str(n)
-        n += 1
-    return free_var
-
-
 def conds(*conds):
     return lambda *args, **kwargs: all(cond(*args, **kwargs) for cond in conds if cond)
 def gen_cond(gen, cond=None):
@@ -69,6 +65,49 @@ def gen_cond(gen, cond=None):
     return val
 def hex_id(n=64, cond=None):
     return gen_cond(lambda: hex(n), conds(lambda id: not id.startswith(tuple("0123456789")), cond))
+
+def free_var(var, scope):
+    free_var = var
+    n = 2
+    while free_var in scope:
+        free_var = var + str(n)
+        n += 1
+    return free_var
+
+def merge_dicts(*dicts):
+    result = {}
+    for dict in dicts:
+        result.update(dict)
+    return result
+
+def redict(d, remove=None, add=None):
+    if remove is None: remove = []
+    if add is None: add = []
+    d = dict(d)
+    for var in remove:
+        if var in d:
+            del d[var]
+    if add:
+        d = {key: d[key] for key in add if key in d}
+    return d
+
+def to_pairs(dict):
+    return [(key, value) for key, value in dict.items()]
+def from_pairs(pairs, sort=None):
+    if sort is None:
+        sort = lambda list: sorted(list)
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            result[key] = sort([result[key], value])[0]
+        else:
+            result[key] = value
+    return result
+def invert_pairs(pairs):
+    return [(value, key) for key, value in pairs]
+def invert_dict(dict, sort=None):
+    return from_pairs(invert_pairs(to_pairs(dict)), sort)
+
 
 
 class Streams(Context):
