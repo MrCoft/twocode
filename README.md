@@ -12,7 +12,7 @@ twocode
 Starts the Twocode console.  
 Right now it can do print("Hello, World!").
 
-### Key ideas
+## Key ideas
 * Taking "don't repeat yourself" to the extreme, Twocode is centered around code generation.
 * The dream here is to write very readable code while having control over every last instruction for difficult problems.
 * Most languages expect 1-to-1 correlation between the source code and the runtime. They offer features to change this(e.g. inline), but those features are limited, not "Turing complete". Some problems can be modelled better by setting up configuration objects, then building code from them.
@@ -45,8 +45,8 @@ else:
 Everything is broken, don't bother yet.  
 I will provide tutorials for confusing parts of the language.
 
-# Roadmap
+## Roadmap
 This is not a toy language. I plan for it to support polished, demanding game engines.
 * The interpreter is still missing major features.
 * The code will be written again in Twocode and compiled in C++/Rust.
-    * The project is written in Python using readable but inefficient algorithms. I estimate its parsing speed to ~100 lines/second. This should be up to ~10,000 to be useful for large projects.  
+    * The project is written in Python using readable but inefficient algorithms. I estimate its parsing speed to be ~100 lines/second. This should be up to ~10,000 to be useful for large projects.  
