@@ -26,20 +26,18 @@ def gen_types(context):
         def f(this):
             return func(this)
         type.__fields__["__repr__"] = Func(native=f, args=[Arg("this", type)], return_type=context.eval("String"))
-    def getitem(index):
-        a = context.scope['__this__']
-        return a[index]
-    def setitem(index, value):
-        a = context.scope['__this__']
-        a[index] = value
+    def getitem(this, index):
+        return this[index]
+    def setitem(this, index, value):
+        this[index] = value
         return value # a
     def pass_index(type, index_type):
         type.__fields__["__getitem__"] = Func(native=getitem, args=[
-            Arg("a", type),
+            Arg("this", type),
             Arg("index", context.eval(index_type)),
         ])
         type.__fields__["__setitem__"] = Func(native=setitem, args=[
-            Arg("a", type),
+            Arg("this", type),
             Arg("index", context.eval(index_type)),
             Arg("value", context.eval(index_type)),
         ])
