@@ -1,0 +1,8 @@
+class yes
+	float normalize(float x)
+		float a = reallyBuddy()
+		string b = iGotThis["no"].hey(1).yes
+		c = 2 % 3 << 4
+		a -= 100
+		list<float> l = []
+		return moy
