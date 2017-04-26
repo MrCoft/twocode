@@ -1,42 +1,52 @@
 # Twocode
-A language designed for translation, featuring intertwined compile-time and runtime execution
+A language designed for translation, featuring intertwined compile-time and runtime execution.
 
-todo
+### Prerequisites
+* Python 3
 
-## Welcome to GitHub Pages
+### Installation
+```bash
+pip install git+https://github.com/MrCoft/twocode
+twocode
+```
+Starts the Twocode console.  
+Right now it can do print("Hello, World!").
 
-You can use the [editor on GitHub](https://github.com/MrCoft/twocode/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+### Key ideas
+* Taking "don't repeat yourself" to the extreme, Twocode is centered around code generation.
+* The dream here is to write very readable code while having control over every last instruction for difficult problems.
+* Most languages expect 1-to-1 correlation between the source code and the runtime. They offer features to change this(e.g. inline), but those features are limited, not "Turing complete". Some problems can be modelled better by setting up configuration objects, then building code from them.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+# Features
 
-### Markdown
+### Parsed, not compiled
+When you define a function, its parsed AST is located in its code attribute.  
+None of its attributes are unreachable. AST objects print readable code.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
+```python
+>>> func f(n): return if n == 1: 1 else: f(n - 1) * n
+>>> f(7)
+5040
+>>> f.code
+return if n == 1:
+    1
+else:
+    f(n - 1) * n
+>>> var block = f.code.lines[0].tuple.expr.if_chain.if_blocks[0]
+>>> var lit = block.block.lines[0].tuple.expr.term.literal
+>>> lit.value
+"1"
+>>> lit.value = "5"
+>>> f(7)
+25200
 ```
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+## Feedback
+Everything is broken, don't bother yet.  
+I will provide tutorials for confusing parts of the language.
 
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/MrCoft/twocode/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+# Roadmap
+This is not a toy language. I plan for it to support polished, demanding game engines.
+* The interpreter is still missing major features.
+* The code will be written again in Twocode and compiled in C++/Rust.
+    * The project is written in Python using readable but inefficient algorithms. I estimate its parsing speed to ~100 lines/second. This should be up to ~10,000 to be useful for large projects.  
