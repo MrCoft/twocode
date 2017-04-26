@@ -32,11 +32,11 @@ return if n == 1:
     1
 else:
     f(n - 1) * n
->>> var block = f.code.lines[0].tuple.expr.if_chain.if_blocks[0]
->>> var lit = block.block.lines[0].tuple.expr.term.literal
->>> lit.value
+>>> var block = f.code.lines[0].tuple.expr.if_chain.if_blocks[0].block
+>>> var literal = block.lines[0].tuple.expr.term.literal
+>>> literal.value
 "1"
->>> lit.value = "5"
+>>> literal.value = "5"
 >>> f(7)
 25200
 ```
