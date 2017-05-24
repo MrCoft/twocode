@@ -5,4 +5,5 @@ class yes
 		c = 2 % 3 << 4
 		a -= 100
 		list<float> l = []
+
 		return moy

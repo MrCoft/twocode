@@ -13,9 +13,12 @@ setup(
             "twocode = twocode.Twocode:main",
         ],
     },
-    install_requires=[
-        
-    ],
+    install_requires=[],
+    test_suite="tests",
+    tests_require=["pytest", "pytest-runner"],
+    extras_require={
+        "testing": ["pytest"],
+    },
 
     author="Ondřej Műller",
     author_email="devcoft@gmail.com",

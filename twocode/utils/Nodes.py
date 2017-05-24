@@ -72,12 +72,18 @@ def switch(map, key):
         return tree
     return filter
 
+def l(f):
+    def wrapped(tree):
+        result = f(tree)
+        return result if result else tree
+    return wrapped
+
 class Var:
     def __init__(self, name, type=None, list=False):
         self.name = name
         self.type = type
         self.list = list
-def node_gen(vars, name):
+def node_gen(name, vars):
     class GenNode:
         def __init__(self, *args, **kwargs):
             self.__dict__ = {var.name: None if not var.list else [] for var in GenNode.vars}
@@ -113,7 +119,7 @@ def node_gen(vars, name):
 def regen_types(input_types):
     node_types = {}
     for type_name, input_type in input_types.items():
-        node_type = node_gen(copy.deepcopy(input_type.vars), type_name)
+        node_type = node_gen(type_name, copy.deepcopy(input_type.vars))
         node_types[type_name] = node_type
 
     def gen_retype(node_type):

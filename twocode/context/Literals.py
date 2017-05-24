@@ -19,4 +19,5 @@ literal_wrap = {
     float: "Float",
     str: "String",
     list: "List",
+    dict: "Map",
 }

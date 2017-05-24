@@ -53,6 +53,8 @@ class Console:
                         line = line.rstrip("\r\n")
                     else:
                         raise EOFError()
+                    if not self.buffer and not line:
+                        continue
                     self.buffer.append(line)
                     code = "\n".join(self.buffer)
                     more = self.run(code)

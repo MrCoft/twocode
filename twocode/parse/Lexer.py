@@ -6,8 +6,10 @@ from twocode.utils.String import shared_str
 # ignore ws linesf
 
 class Token:
-    def __init__(self):
-        self.type = None
+    def __init__(self, type=None, data=None):
+        self.type = type
+        if data:
+            self.data = data
     def __repr__(self):
         return str(self.__dict__)
 
@@ -69,10 +71,7 @@ class LexModel:
         indent_stack, last_indent = [], ""
         lexer.filename = "<stdin>"
         def push(type, data=None):
-            token = Token()
-            token.type = type
-            if data:
-                token.data = data
+            token = Token(type, data)
             # token.source = LexModel.Source(lexer.filename, line) # clear source architecture
             # line, indent are just lost, attaching filename to the lexer is awful
             lexer.tokens.append(token)
@@ -126,8 +125,8 @@ class LexModel:
             rule_line = basic_rule_gen(line_f)
             def error_f(match):
                 nonlocal line
-                raise Lexer.NoMatch("no match for '{}'\n".format(match)
-                    + preview(" @ {}: {}".format(line, repr(match + Lexer.current.buffer))))
+                raise Lexer.NoMatch("no match for {}\n".format(repr(match))
+                    + preview(" @ {}: {}".format(line, match + Lexer.current.buffer)))
             rule_error = basic_rule_gen(error_f)
             rule = locals()["rule_" + action]
             return rule
@@ -139,9 +138,7 @@ class LexModel:
                 yield token
             nonlocal indent_stack, last_indent
             for indent_len in indent_stack:
-                token = Token()
-                token.type = "LEAVE"
-                yield token
+                yield Token("LEAVE")
             indent_stack, last_indent = [], ""
         lexer.parse = wrap_parse
         return lexer
@@ -194,8 +191,11 @@ class LexLanguage:
         for keyword in sort(self.keywords):
             lex_model.add_rule(keyword + "(?![_a-zA-Z0-9])", "raw")
         for name, literal in sort(self.literals.items()):
-            lex_model.add_rule(literal, "pass", "LITERAL_" + name)
+            lex_model.add_rule("({})(?![_a-zA-Z0-9])".format(literal), "pass", "LITERAL_" + name)
         lex_model.add_rule('[_a-zA-Z][_a-zA-Z0-9]*', "pass", "ID")
+        # lex_model.add_rule(r'(\r\n|\r|\n)[\t ]*(?=\r\n|\r|\n|$)', "line")
+        # REASON: empty line to EOL
+        # REASON: ignore \<EOL>
         if self.indent_block:
             lex_model.add_rule(r'(\r\n|\r|\n)[\t ]*.', "indent")
         lex_model.add_rule(r'\r\n|\r|\n', "line")
@@ -211,7 +211,7 @@ def default_lex():
         "COMPARE": {'<', '>', '<=', '>=', '!=', '=='},
         "MATH": {'+', '-', '*', '/', '%', '&', '|', '^', '<<', '>>', '>>>', '&&', '||'},
         "FIX": {'++', '--'},
-        "UNARY": {'+', '-', '!', '~'}
+        "UNARY": {'+', '-', '!', '~'},
     }
     lex_lang.raw = {'=', '(', ')', '[', ']', '{', '}', '.', ',', '<', '>'}
     lex_lang.literals = {
@@ -220,7 +220,7 @@ def default_lex():
         "hexadecimal": '0[xX][0-9a-fA-F]+',
         "octal": '0[0-7]+',
         "binary": '0[bB][01]+',
-        "string": r'\"((\\\")*[^\"\r\n]?)*\"'
+        "string": r'\"((\\\")*[^\"\r\n]?)*\"',
     }
     lex_lang.allow_ws = True
     lex_lang.indent_block = True

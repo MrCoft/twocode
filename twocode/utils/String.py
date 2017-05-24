@@ -7,7 +7,8 @@ def shared_str(s1, s2):
             break
     return len
 
-def escape(s, max_length=80, unicode=False):
+escape_table = {eval('"\\{}"'.format(c)): c for c in "\\abfnrtv"}
+def escape(s, max_length=80):
     ret = []
 
     # Try to split on whitespace, not in the middle of a word.
@@ -16,24 +17,20 @@ def escape(s, max_length=80, unicode=False):
         split_at_space_pos = None
 
     position = 0
-    if unicode:
-        position += 1
-        ret.append('L')
 
-    ret.append('"')
+    quote = '"'
+    if '"' in s and "'" not in s:
+        quote = "'"
+    ret.append(quote)
     position += 1
     for c in s:
         newline = False
-        if c == "\n":
-            to_add = "\\n"
-        elif ord(c) < 32 or 0x80 <= ord(c) <= 0xff:
-            to_add = "\\x%02x" % ord(c)
-        elif ord(c) > 0xff:
-            if not unicode:
-                raise ValueError("string contains unicode character but unicode=False")
-            to_add = "\\u%04x" % ord(c)
-        elif "\\\"".find(c) != -1:
-            to_add = "\\%c" % c
+        if c == quote:
+            to_add = "\\" + quote
+        elif c in escape_table:
+            to_add = "\\" + escape_table[c]
+        elif ord(c) < 32 or 0x80 <= ord(c):
+            to_add = "\\x" + format(ord(c), "x").rjust(2, "0")
         else:
             to_add = c
 
@@ -49,6 +46,6 @@ def escape(s, max_length=80, unicode=False):
             ret.append("\\\n")
             position = 0
 
-    ret.append('"')
+    ret.append(quote)
 
     return "".join(ret)

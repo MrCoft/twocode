@@ -25,7 +25,7 @@ def gen_types(context):
     def pass_repr(type, func):
         def f(this):
             return func(this)
-        type.__fields__["__repr__"] = Func(native=f, args=[Arg("this", type)], return_type=context.eval("String"))
+        type.__fields__["__repr__"] = Func(native=f, args=[Arg("this", type)], return_type=context.builtins.String)
     def getitem(this, index):
         return this[index]
     def setitem(this, index, value):
@@ -48,8 +48,9 @@ def gen_types(context):
         return f
     def pass_method(type, name, signature, rename=None):
         if rename is None: rename = name
-        # sig
-        type.__fields__[rename] = Func(native=gen_method(name))
+        method = Func(native=gen_method(name))
+        method.args = [Arg("this"), type] #
+        type.__fields__[rename] = method
     def pass_conv(type, retype):
         def f(): # so self should shouldnt be there? right now not as it is an invisible layer below
             this = context.scope['__this__']
@@ -70,8 +71,8 @@ def gen_types(context):
     Float = gen_type("Float")
     String = gen_type("String")
     List = gen_type("List")
-    Set = gen_type("Set")
     Map = gen_type("Map")
+    Set = gen_type("Set")
 
     pass_repr(Null, lambda obj: "null")
     pass_repr(Bool, lambda obj: "true" if obj else "false")
@@ -86,8 +87,8 @@ def gen_types(context):
         items = [context.unwrap_value(item) for item in items]
         return "[{}]".format(", ".join(items))
     pass_repr(List, r)
-    pass_repr(Set, lambda obj: "{{}}".format(", ".join(obj)))
-    pass_repr(Map, lambda obj: "{{}}".format(", ".join(obj)))
+    pass_repr(Map, lambda obj: "[{}]".format(", ".join(["{}: {}".format(context.unwrap_value(context.builtins.repr.native(key)), context.unwrap_value(context.builtins.repr.native(value))) for key, value in obj.items()])))
+    pass_repr(Set, lambda obj: "{{}}".format(", ".join([context.unwrap_value(context.builtins.repr.native(item)) for item in obj]))) # to short func
 
     def f(obj):
         if obj is not None:
@@ -123,6 +124,9 @@ def gen_types(context):
         pass_op(Float, func_name, return_type="Float")
 
     # pass_op(String, op_assign["+="], "List", "List")    += not working
+
+    # value/ref
+    # @struct
 
     # name -> name<T>
     for type in String, List:

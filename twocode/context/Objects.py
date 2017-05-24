@@ -7,6 +7,7 @@ class Object(Utils.Object):
         self.__bound__ = {}
         if this:
             self.__this__ = this
+# actually, you cant register "items" ?
 
 class Func(Object):
     def __init__(self, args=None, return_type=None, code=None, native=None):
@@ -18,23 +19,29 @@ class Arg(Object):
     def __init__(self, name="", type=None, default=None, pack=None):
         super().__init__()
         self.args_pass()
+
+class Class(Object):
+    def __init__(self, name=None):
+        super().__init__()
+        self.__fields__ = {}
+        self.__parent__ = None
+        self.__default__ = None
 class BoundMethod(Object):
     def __init__(self, obj=None, func=None):
         super().__init__()
         self.args_pass()
 
-class Class(Object):
-    def __init__(self, name=None):
-        super().__init__()
-        self.__name__ = name
-        self.__fields__ = {}
-        self.__parent__ = None
-        self.__default__ = None
+# key -> var.value, on set and get
+# a.b, a[b], in a: var x:T
+# a func that sets it using a type
+# a.__slots__ or __vars__ returns the original dict
 
-# has to be runtime
+# class wrappers
+# this.
+
 # class Scope:
 #    var stack:List<Dict<String, Object>> = [{}]
-# loading packages how? some command or something about the content that makes it order independent
+# setattr for class - mirror getattr
 
 class Var(Object):
     def __init__(self, value=None, type=None):
@@ -69,12 +76,10 @@ class Scope:
         scope = Scope()
         scope.stack = self.stack.copy()
         return scope
+# order
 
-class Return(Exception):
-    def __init__(self, value=None):
-        self.value = value
-
-objects = [Func, Arg, BoundMethod, Class, Var]
+from twocode.context.Modules import Module
+objects = [Func, Arg, Class, BoundMethod, Var, Module]
 def wrap_init(source):
     init_f = source.__init__
     def wrapped(self, *args, **kwargs):
@@ -89,7 +94,6 @@ metafields = Object().keys()
 for source in objects:
     name = source.__name__
     cls = Class()
-    cls.__name__ = name
     for var, default in source().items():
         if var not in metafields:
             cls.__fields__[var] = Object(Class(), this=default) # unwrap
@@ -98,20 +102,46 @@ for source in objects:
 for source in objects:
     source.__type__.__type__ = Class.__type__
 
-def class_getattr(obj, name):
-    if name in obj.__fields__:
-        return obj.__fields__[name]
-    raise AttributeError()
-Class.__type__.__fields__["__getattr__"] = Func(native=class_getattr)
-def func_repr(this):
-    #this = context.scope['__this__']
-    return "f"
-    return repr(obj.code)
-Func.__type__.__fields__["__repr__"] = Func(native=func_repr)
-# Class.__repr__ = lambda self: self.__name__
-# Class.__type__.__fields__["__getattr__"] = Func(native=lambda obj, attr: obj.__fields__[attr])
+def bind_context(context):
+    from twocode.Repr import wrap_block, pack_args
 
-# context object - do not modify methods! but start an appropriate scope for them
+    def class_getattr(obj, name):
+        if name in obj.__fields__:
+            return obj.__fields__[name]
+        raise AttributeError()
+    def class_repr(obj):
+        fields = []
+        fields_iter = sorted((context.unwrap_value(name), field) for name, field in obj.__fields__.items())
+        for name, field in fields_iter:
+            if not isinstance(field, Func):
+                default_code = context.unwrap_value(context.builtins.repr.native(field))
+                var_code = "var {}".format(name) + (" = " + default_code if field else "")
+                fields.append(var_code)
+        fields.append("")
+        for name, field in fields_iter:
+            if isinstance(field, Func):
+                func_code = context.unwrap_value(context.builtins.repr.native(field))
+                func_code = "func {}".format(name) + func_code[4:] #
+                fields.append(name)
+        block_code = "\n".join(fields)
+        code = "class" + (" " + context.unwrap_value(obj.__name__) if obj.__name__ else "") + ":" + wrap_block(block_code)
+        # name? func name?
+        return code
+    Class.__type__.__fields__["__getattr__"] = Func(native=class_getattr)
+    Class.__type__.__fields__["__repr__"] = Func(native=class_repr, args=[Arg("this", type=Class)])
+    # not passed to Int?
+
+    def func_repr(obj):
+        args = []
+        for arg in obj.args:
+            default_code = context.unwrap_value(context.builtins.repr.native(arg.default))
+            arg_code = pack_args(arg.pack) + arg.name + (":{}".format(arg.type.__name__) if arg.type else "") + (" = {}".format(default_code) if arg.default else "")
+            args.append(arg_code)
+        block_code = context.unwrap_value(context.builtins.repr.native(obj.code))
+        code = "func" + "({})".format(", ".join(args)) + ("->{}".format(obj.return_type.__name__) if obj.return_type else "") + ":" + wrap_block(block_code)
+        return code
+        # a func that prints a path to a type in the current context - full path if imported, else
+    Func.__type__.__fields__["__repr__"] = Func(native=func_repr, args=[Arg("this", type=Func)])
 
 def gen_node_classes(node_types):
     node_classes = {}
@@ -123,12 +153,5 @@ def gen_node_classes(node_types):
         node_classes[type_name] = cls
     return node_classes
 
-# an object instance
-# class is its class, parent chain
-# or its class is Object whose class is Class?
-
 # native - a macro func that ends up generating code with expressions
     # using other lang-specific code
-
-# objects... are linked, how, for it to work best?
-# NO NATIVE OUTSDIE BUILTIN

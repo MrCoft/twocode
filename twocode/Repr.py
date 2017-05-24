@@ -1,9 +1,13 @@
+import twocode.utils.String
+
 map_format = {
     "type_ID": "{ID}",
     "type_params": "{ID}<{params}>",
+    "range": "{min}...{max}",
     "stmt_tuple": "{tuple}",
     "stmt_break": "break",
     "stmt_continue": "continue",
+    "stmt_import": "{imp}",
     "assignment": "{op} {tuple}",
     "tuple_expr": "{expr}",
     "expr_term": "{term}",
@@ -16,26 +20,32 @@ map_format = {
     "expr_try": "{try_chain}",
     "expr_for": "{for_loop}",
     "expr_while": "{while_loop}",
+    "expr_in_block": "{in_block}",
     "expr_func": "{func}",
-    "expr_class": "{class}",
+    "expr_class": "{cls}",
+    "expr_range": "{range}",
+    "expr_ellipsis": "...",
+    "expr_decorator": "@{term} {expr}",
+    "expr_macro": "macro {code}",
     "term_ID": "{ID}",
     "term_access": "{term}.{ID}",
     "term_index": "{term}[{tuple}]",
     "term_literal": "{literal}",
     "term_call": "{term}({args})",
     "term_tuple": "({tuple})",
-    "term_array": "[{tuple}]",
-    "literal": "{value}",
+    "term_list": "[{tuple}]",
 }
 map_lambda = {
     "code": lambda node: "\n".join(str(stmt) for stmt in node.lines),
+    "imp": lambda node: ("from {} ".format(".".join(node.module)) if node.module else "") + "import " + ", ".join(".".join(path.path) + (" as {}".format(path.name) if path.name else "") for path in node.imports),
     "type_func": lambda node: "{}->{}".format(",".join(str(type) for type in node.arg_types), ",".join(str(type) for type in node.return_types)),
     "type_tuple": lambda node: "({})".format(",".join(str(type) for type in node.types)),
-    "class": lambda node: "class" + (" " + node.ID if node.ID else "") + ":" + wrap_block(node.block),
+    "cls": lambda node: "class" + (" " + node.ID if node.ID else "") + ("({})".format(str(node.parent)) if node.parent else "") + ":" + wrap_block(node.block),
     "func": lambda node: "func" + (" " + node.ID if node.ID else "") + "({})".format(", ".join(str(arg) for arg in node.args)) + ("->{}".format(node.return_type) if node.return_type else "") + ":" + wrap_block(node.block),
     "func_arg": lambda node: pack_args(node.pack) + node.ID + (":{}".format(str(node.type)) if node.type else "") + (" = {}".format(str(node.value)) if node.value else ""),
     "call_arg": lambda node: pack_args(node.pack) + ("{}=".format(str(node.ID)) if node.ID else "") + str(node.value),
     "decl": lambda node: str(node.ID) + (":{}".format(str(node.type.type)) if node.type else ""),
+    "in_block": lambda node: "in {}:".format(str(node.expr)) + wrap_block(node.block),
     "for_loop": lambda node: "for {} in {}:".format(str(node.var), str(node.iter)) + wrap_block(node.block),
     "while_loop": lambda node: "while {}:".format(str(node.cond)) + wrap_block(node.block),
     "stmt_assign": lambda node: str(node.tuple) + " " + "".join(str(assign) for assign in node.assign_chain),
@@ -46,7 +56,9 @@ map_lambda = {
     "expr_affix": lambda node: node.op + str(node.term) if node.affix == "prefix" else str(node.term) + node.op,
     "expr_not": lambda node: "not " + str(node.expr) if not type(node.expr).__name__ == "expr_in" else "{} not in {}".format(str(node.expr.expr1), str(node.expr.expr2)),
     "expr_block": lambda node: wrap_block(node.block, start_block=False),
+    "literal": lambda node: node.value if not node.type == "string" else twocode.utils.String.escape(node.value),
 }
+
 def map_if_chain(node):
     code = ""
     code += "if {}:".format(str(node.if_blocks[0].cond))
@@ -72,9 +84,9 @@ def wrap_block(node, start_block=True, expand=False):
     if not lines:
         return margin() + "{}"
     if len(lines) > 1 or expand:
-        return "\n".join("\n" + " " * 4 + line for line in lines)
+        return "".join("\n" + " " * 4 + line for line in lines)
     else:
-        return margin() + "{{ {} }}".format(lines[0])
+        return margin() + lines[0]
 
 def pack_args(mode):
     if not mode:

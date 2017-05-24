@@ -36,3 +36,7 @@ op_assign = {
     "<<=": "__ilshift__",
     ">>=": "__irshift__",
 }
+def increment(obj):
+    obj.__this__ += 1
+def decrement(obj):
+    obj.__this__ -= 1

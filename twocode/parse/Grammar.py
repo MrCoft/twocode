@@ -20,9 +20,12 @@ class Grammar:
         self.gen_names()
         prototype_rules = [copy.deepcopy(rule) for rule in self.rules]
         self.add_symbol("WS", [
-            Grammar.Rule(pattern, allow_ws=False) for pattern in
-        [['EOL']]#    [['WS', 'WS'], ['EOL'], ['ENTER'], ['LEAVE']]
-            ])
+            Grammar.Rule(pattern, allow_ws=False) for pattern in [
+                ["EOL"],
+                # ["WS", "WS"],
+                # ["ENTER"], ["LEAVE"],
+            ]
+        ])
         self.unfit["WS"] = set()
         self.apply_list()
         self.apply_cond()
@@ -146,7 +149,7 @@ class Grammar:
                     vars.append(var)
             if not (vars or rule.symbol in used_types):
                 return None
-            GenNode = twocode.utils.Nodes.node_gen(vars, str(rule))
+            GenNode = twocode.utils.Nodes.node_gen(str(rule), vars)
             return GenNode
         nonterminals = {rule.symbol for rule in prototype_rules if not "fallthrough" in rule.tags}
         # REASON: fallthrough prototypes make the final tree unmappable
@@ -155,7 +158,7 @@ class Grammar:
         fallthrough_type = {rule.symbol: rule.pattern[0].name for rule in rules if "fallthrough" in rule.tags}
         copy_to_rule = {rule_copy: rule for rule, rule_copy in zip(rules, rule_copies)}
         node_types = {}
-        node_types["literal"] = twocode.utils.Nodes.node_gen([Var("value"), Var("type")], "literal")
+        node_types["literal"] = twocode.utils.Nodes.node_gen("literal", [Var("value"), Var("type")])
         nonterminals.add("LITERAL")
         for rule in prototype_rules:
             node_type = node_gen(rule)

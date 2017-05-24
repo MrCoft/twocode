@@ -2,6 +2,7 @@
 ################
 *.pyc
 __pycache__
+.cache
 
 # Editor files #
 ################
@@ -11,5 +12,17 @@ __pycache__
 # Setup files #
 ###############
 *.egg-info/
+.eggs/
 build/
 dist/
+
+# Plugin #
+##########
+idea/
+IntelliJ/
+
+# Unpresentables #
+##################
+code/
+roadmap/
+design-decisions.md
