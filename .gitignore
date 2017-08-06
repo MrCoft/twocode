@@ -23,6 +23,11 @@ IntelliJ/
 
 # Unpresentables #
 ##################
+todo.txt
 code/
+code.new/
+win-cpp/
 roadmap/
 design-decisions.md
+design-decisions/
+design-decisions.new/

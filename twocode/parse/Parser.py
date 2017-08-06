@@ -104,7 +104,7 @@ class Parser:
     def first_tree(self, symbol, at, symbol_len):
         rule, distr = self.trees[at].reduces[symbol][symbol_len][0]
         if not rule:
-            return Node(rule=None, token=self.buffer[at])
+            return Node(rule=None, token=getattr(self.buffer[at], "data", None))
         jump = at - symbol_len
         children = []
         for sym, sym_len in zip(rule.pattern, distr):
@@ -118,7 +118,7 @@ class Parser:
         trees = []
         for rule, distr in self.trees[at].reduces[symbol][symbol_len]:
             if not rule:
-                trees += [Node(rule=None, token=self.buffer[at])]
+                trees += [Node(rule=None, token=getattr(self.buffer[at], "data", None))]
                 continue
             branches = None
             jump = at - symbol_len
@@ -141,10 +141,13 @@ class IncrementalParser:
         self.symbol_rules = {}
         for rule in self.rules:
             self.symbol_rules.setdefault(rule.symbol, []).append(rule)
+        self.edge = []
+        self.matches = []
     def init_search(self, symbol=None):
         if symbol is None: symbol = self.rules[0].symbol
-        self.edge = [IncrementalParser.Branch(None, rule) for rule in self.symbol_rules[symbol]]
+        self.edge = [IncrementalParser.Branch([], rule) for rule in self.symbol_rules[symbol]]
         self.expand()
+        self.matches = []
     def match(self):
         if self.matches:
             return self.matches[0]
@@ -178,7 +181,7 @@ class IncrementalParser:
                     else:
                         for parent in branch.parents:
                             parent_branch = IncrementalParser.Branch(parent.parents, parent.rule)
-                            parent_branch.children = list(parent.children)
+                            parent_branch.children = parent.children.copy()
                             parent_branch.children.append(Node(rule=branch.rule, children=branch.children))
                             edge_re.append(parent_branch)
                 else:
@@ -205,7 +208,7 @@ class IncrementalParser:
         for branch in self.edge:
             rule = branch.rule
             if rule.pattern[len(branch.children)] == token.type:
-                branch.children.append(Node(rule=None, token=token))
+                branch.children.append(Node(rule=None, token=getattr(token, "data", None)))
                 edge.append(branch)
         self.edge = edge
         self.expand()
@@ -216,8 +219,8 @@ class IncrementalParser:
     class PatternContext:
         def __init__(self, parser, pattern):
             self.parser = parser
-            symbol = Utils.hex_id(cond=lambda id: id not in self.parser.symbol_rules)
-            self.rule = Grammar.Rule(symbol, pattern)
+            symbol = Utils.hex(cond=lambda id: id not in self.parser.symbol_rules)
+            self.rule = twocode.parse.Grammar.Rule(symbol, pattern)
         def __enter__(self):
             self.parser.symbol_rules[self.rule.symbol] = [self.rule]
             self.parser.init_search(self.rule.symbol)

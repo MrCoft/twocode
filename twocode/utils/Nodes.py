@@ -15,14 +15,6 @@ class Node:
             for line in str(child).splitlines():
                 lines.append(".\t{}".format(line))
         return "\n".join(lines)
-    def __len__(self):
-        total = 0
-        for child in self.children:
-            if isinstance(child, Node):
-                total += len(child)
-            else:
-                total += 1
-        return total
 
 def free_batch(group, cond):
     fail_check = twocode.utils.Code.fail_check(lambda: len(group))
@@ -72,9 +64,23 @@ def switch(map, key):
         return tree
     return filter
 
+def range_call(f):
+    def filter(node, pos=0):
+        if node.children:
+            children, length = [], 0
+            for child in node.children:
+                child, l = filter(child, pos=pos+length)
+                children.append(child)
+                length += l
+            node.children = children
+        else:
+            length = 1
+        return f(node, (pos, length)), length
+    return filter
+
 def l(f):
-    def wrapped(tree):
-        result = f(tree)
+    def wrapped(tree, *args, **kwargs):
+        result = f(tree, *args, **kwargs)
         return result if result else tree
     return wrapped
 
@@ -153,7 +159,7 @@ def compact_block(value, branches=None, delim=".\t"):
     if branches:
         return ("\n" + delim).join([""] + lines)
     else:
-        return "\n".join(lines)
+        return " " + "\n".join(lines)
 def compact_node(node, delim=".\t", arg_vars=None):
     format_value = lambda value: compact_block(value, delim=delim)
     name = type(node).__name__
@@ -163,10 +169,10 @@ def compact_node(node, delim=".\t", arg_vars=None):
             return name + " " + str(node)
         else:
             # REASON: to have ":" before repr(value), and to do lists of all sizes the same way
-            return name + ": " + compact_block(node, delim=delim)
+            return name + ":" + compact_block(node, delim=delim)
     lines = [
-        "{}: {}".format(key, format_value(value)) for key, value in sorted(twocode.Utils.redict(node.__dict__, arg_vars).items())
+        "{}:{}".format(key, format_value(value)) for key, value in sorted(twocode.Utils.redict(node.__dict__, arg_vars).items())
     ] + [
-        "{}: {}".format(key, format_value(node.__dict__[key])) for key in arg_vars
+        "{}:{}".format(key, format_value(node.__dict__[key])) for key in arg_vars
     ]
     return name + ":" + compact_block(lines, True, delim)

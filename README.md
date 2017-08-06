@@ -1,5 +1,5 @@
 # Twocode
-[![TravisCI Build Status](https://api.travis-ci.org/MrCoft/twocode.svg?branch=master)](https://travis-ci.org/MrCoft/twocode)
+[![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](LICENSE.md) [![TravisCI Build Status](https://api.travis-ci.org/MrCoft/twocode.svg?branch=master)](https://travis-ci.org/MrCoft/twocode)
 
 A language designed for translation, featuring intertwined compile-time and runtime execution.
 

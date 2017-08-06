@@ -8,11 +8,10 @@ if __name__ == "__main__":
     codebase = os.path.join(os.path.dirname(os.path.dirname(__file__)), "code")
     context.sources.append(codebase)
 
-    ast = context.parse(open("../code/code/lang/SimpleSample.2c").read())
-    ast = context.parse(open("../code/string/parser/Lexer.2c").read())
+    #ast = context.parse(open("../code/code/lang/SimpleSample.2c").read())
+    #ast = context.parse(open("../code/string/parser/Lexer.2c").read())
+    ast = context.parse(open("../code/CPP.2c").read())
     print(ast)
-
-    from twocode.context.Objects import Func, Object
 
     def map(obj, name=None):
         if isinstance(obj, Func):
@@ -48,9 +47,22 @@ if __name__ == "__main__":
     # select impl
         # examples - print, int
 
+    # smart native
+    # inline impl - to {}?
+    # inline a block {} - free vars from _1
+
+    # native integrated with var names etc
+
+    # @struct
+
+    # id map is kind of broken - we need to add types to it
+    # List<Int>
+
+    # module, scope, insert during import, print here, entry="a.b"
+
     map_format = {
-        "type_ID": "{ID}",
-        "type_params": "{ID}<{params}>",
+        "type_id": "{id}",
+        "type_params": "{id}<{params}>",
         "stmt_tuple": "{tuple}",
         "stmt_break": "break",
         "stmt_continue": "continue",
@@ -65,15 +77,15 @@ if __name__ == "__main__":
         "expr_try": "{try_chain}",
         "expr_for": "{for_loop}",
         "expr_while": "{while_loop}",
-        "term_ID": "{ID}",
-        "term_access": "{term}.{ID}",
+        "term_id": "{id}",
+        "term_access": "{term}.{id}",
         "term_index": "{term}[{tuple}]",
         "term_literal": "{literal}",
         "term_list": "[{tuple}]",
     }
     map_lambda = {
         "code": lambda node: "\n".join(repr(stmt) + ";" for stmt in node.lines),
-        "decl": lambda node: "{} {}".format(map_type(repr(node.type.type)), str(node.ID)),
+        "decl": lambda node: "{} {}".format(map_type(repr(node.type.type)), str(node.id)),
         "stmt_var": lambda node: repr(node.vars[0]), # multiple, assign_chain
     }
     def map_term_call(node):
@@ -107,66 +119,36 @@ if __name__ == "__main__":
         return type_name
 
     context.eval(ast)
-    print(map(context.scope["main"], "main"))
 
-    def compile(obj):
+    def compile(code):
         main_file = "tc.cpp"
         bin_file = "tc.exe"
 
-        code = map(obj, "main")
+        # code = map(obj, "main")
         with open(main_file, "w") as file:
             file.write(code)
         os.system("g++ {} -o {}".format(main_file, bin_file))
         os.system(main_file)
     # compile(context.scope["main"])
 
-    def full_code(module):
-        memo = set()
-        def travel(node):
-            ptr = id(node)
-            if ptr in memo:
-                return 0, 0, 0
-            memo.add(ptr)
 
-            count, depth, size = 1, 0, 0
-            if isinstance(node, Object) or isinstance(node, dict):
-                for key, value in node.items():
-                    size += 8
+    print(code_size(context.scope["main"]))
 
-                    c, d, s = travel(value)
-                    count += c
-                    depth = max(depth, d)
-                    size += s
-                depth += 1
-            else:
-                if node is None:
-                    pass
-                elif isinstance(node, str):
-                    size += len(node.encode("utf-8"))
-                elif isinstance(node, list):
-                    size += 8
-                    for item in node:
-                        c, d, s = travel(item)
-                        count += c
-                        depth = max(depth, d)
-                        size += s
-                    depth += 1
+    code = map(context.scope["main"], "main")
+    includes = context.unwrap_value(context.scope["includes"])
+    includes_code = "\n".join("#include <{}>".format(path) for path in includes.values())
 
-            return count, depth, size
+    code = "\n\n".join([includes_code, code])
 
-        count, depth, size = travel(module)
-        import humanize
-        return " ".join(str(item) for item in [count, "nodes,", depth, "depth,", humanize.naturalsize(size), "memory size"])
-
-    print(full_code(context.scope["main"]))
+    compile(code)
 
     '''
     map_lambda = {
 
         "type_func": lambda node: "{}->{}".format(",".join(str(type) for type in node.arg_types), ",".join(str(type) for type in node.return_types)),
         "type_tuple": lambda node: "({})".format(",".join(str(type) for type in node.types)),
-        "func_arg": lambda node: pack_args(node.pack) + node.ID + (":{}".format(str(node.type)) if node.type else "") + (" = {}".format(str(node.value)) if node.value else ""),
-        "call_arg": lambda node: pack_args(node.pack) + ("{}=".format(str(node.ID)) if node.ID else "") + str(node.value),
+        "func_arg": lambda node: pack_args(node.pack) + node.id + (":{}".format(str(node.type)) if node.type else "") + (" = {}".format(str(node.value)) if node.value else ""),
+        "call_arg": lambda node: pack_args(node.pack) + ("{}=".format(str(node.id)) if node.id else "") + str(node.value),
 
         "in_block": lambda node: "in {}:".format(str(node.expr)) + wrap_block(node.block),
         "for_loop": lambda node: "for {} in {}:".format(str(node.var), str(node.iter)) + wrap_block(node.block),

@@ -4,6 +4,11 @@ varb = 2
 if true:
     0
 
+if item in all:
+    common.add(item)
+else:
+    all.add(item)
+
 iftrue:
     1
 

@@ -1,7 +1,7 @@
 import copy
 from twocode import Utils
 import twocode.utils.Nodes
-from twocode.utils.Nodes import map, switch, Var
+from twocode.utils.Nodes import map, switch, Var, Node
 from twocode.utils.Code import filter
 
 class Rule:
@@ -22,8 +22,8 @@ class Grammar:
         self.add_symbol("WS", [
             Grammar.Rule(pattern, allow_ws=False) for pattern in [
                 ["EOL"],
-                # ["WS", "WS"],
-                # ["ENTER"], ["LEAVE"],
+                ["WS", "WS"],
+                ["ENTER"], ["LEAVE"],
             ]
         ])
         self.unfit["WS"] = set()
@@ -109,9 +109,12 @@ class Grammar:
                 if symbol.name in self.unfit:
                     symbol.name = "_" + symbol.name
         for symbol, raws in self.unfit.items():
-            for sym in [symbol] + ["'{}'".format(raw) for raw in sorted(raws)]:
+            rule = Grammar.Rule([symbol], symbol="_" + symbol)
+            rule.tags.add("fallthrough")
+            self.rules.append(rule)
+            for sym in ["'{}'".format(raw) for raw in sorted(raws)]:
                 rule = Grammar.Rule([sym], symbol="_" + symbol)
-                rule.tags.add("fallthrough")
+                rule.tags.add("unfit")
                 self.rules.append(rule)
 
     def gen_names(self):
@@ -131,7 +134,7 @@ class Grammar:
                     but this then breaks a Return node which has no children
         '''
         def node_gen(rule):
-            if "fallthrough" in rule.tags:
+            if "unfit" in rule.tags:
                 return None
             vars = []
             for symbol in rule.pattern:
@@ -158,7 +161,7 @@ class Grammar:
         fallthrough_type = {rule.symbol: rule.pattern[0].name for rule in rules if "fallthrough" in rule.tags}
         copy_to_rule = {rule_copy: rule for rule, rule_copy in zip(rules, rule_copies)}
         node_types = {}
-        node_types["literal"] = twocode.utils.Nodes.node_gen("literal", [Var("value"), Var("type")])
+        node_types["literal"] = twocode.utils.Nodes.node_gen("literal", [Var("value"), Var("lit_type")])
         nonterminals.add("LITERAL")
         for rule in prototype_rules:
             node_type = node_gen(rule)
@@ -171,16 +174,25 @@ class Grammar:
 
         def transform_fallthrough(rule):
             '''
-                unwraps single-element prototypes and the unfit
+                unwraps single-element prototypes
             '''
             if "fallthrough" in rule.tags:
                 return lambda node: node.children[0]
+            return lambda node: node
+        def transform_unfit(rule):
+            '''
+                raw tokens have no data to pretty-print as '+' and not '+'("+")
+                fit ops read as MATH("%"), but unfit ops disappear
+            '''
+            if "unfit" in rule.tags:
+                token = rule.pattern[0].name[1:-1]
+                return lambda node: Node(rule=None, token=token)
             return lambda node: node
         def transform_terminals(node):
             '''
                 unwraps raw tokens
             '''
-            return node.token.__dict__.get("data")
+            return node.token
         def transform_literals(rule):
             node_type = node_types["literal"]
             f = lambda node: node
@@ -219,22 +231,20 @@ class Grammar:
             return f
 
         '''
-            on order:
-            fallthrough - terminals don't appear in NodeTypes' children
+            order matters, we group transformative functions as some create non-nodes
+
+            fallthrough, unfit - terminals don't appear in NodeTypes' children
+
             terminals - turns nodes into strings, can't be followed by switch
             list - turns nodes into lists, which only NodeTypes can handle
             type - requires transformed lists
         '''
-        def transform(tree):
-            '''
-                groups transformative functions as some create non-nodes
-            '''
-            tree = map(leave=switch({rule: transform_fallthrough(rule) for rule in rules},
-                                    lambda node: copy_to_rule.get(node.rule)))(tree)
-            type_map = {rule: filter(transform_literals(rule), transform_list(rule), transform_type(rule)) for rule in rules}
-            type_map[None] = transform_terminals
-            tree = map(leave=switch(type_map, lambda node: copy_to_rule.get(node.rule)))(tree)
-            return tree
+        token_transform = map(leave=switch({rule: filter(transform_fallthrough(rule), transform_unfit(rule)) for rule in rules},
+                                lambda node: copy_to_rule.get(node.rule)))
+        type_map = {rule: filter(transform_literals(rule), transform_list(rule), transform_type(rule)) for rule in rules}
+        type_map[None] = transform_terminals
+        type_transform = map(leave=switch(type_map, lambda node: copy_to_rule.get(node.rule)))
+        transform = lambda tree: type_transform(token_transform(tree))
         return node_types, transform
 
     def add_symbol(self, symbol, rules):
@@ -277,7 +287,7 @@ def default_grammar():
         Rule([S("class", var="content")])
     ])
     grammar.add_symbol("class", [
-        Rule(["'class'", S("ID", var="name"), "ENTER", S("class_content", list=List(), var="content"), "LEAVE"])
+        Rule(["'class'", S("id", var="name"), "ENTER", S("class_content", list=List(), var="content"), "LEAVE"])
     ])
     grammar.add_symbol("class_content", [
         Rule([Var("decl")]),
@@ -292,14 +302,14 @@ def default_grammar():
         Rule(["'return'", Var("expr")], "returnexpr")
     ])
     grammar.add_symbol("decl", [
-        Rule([Var("type"), Var("ID")])
+        Rule([Var("type"), Var("id")])
     ])
     grammar.add_symbol("type", [
-        Rule([Var("ID")], "simple"),
-        Rule([Var("ID"), "'<'", S("type", var="template"), "'>'"], "template")
+        Rule([Var("id")], "simple"),
+        Rule([Var("id"), "'<'", S("type", var="template"), "'>'"], "template")
     ])
     grammar.add_symbol("func", [
-        Rule([Var("type"), Var("ID"), "'('", S("decl", list=List(delim="','"), cond=True, var="arg_list"), "')'",
+        Rule([Var("type"), Var("id"), "'('", S("decl", list=List(delim="','"), cond=True, var="arg_list"), "')'",
               "ENTER", S("line", list=List(), var="code"), "LEAVE"])
     ])
     grammar.add_symbol("expr", [
@@ -311,11 +321,11 @@ def default_grammar():
         Rule([Var("term"), S("FIX", var="op")], "postfix")
     ])
     grammar.add_symbol("term", [
-        Rule([Var("ID")], "ID"),
+        Rule([Var("id")], "id"),
         Rule([S("LITERAL", var="literal")], "literal"),
         Rule([Var("term"), "'('", S("expr", list=List(), cond=True, var="expr_list"), "')'"], "call"),
         Rule([Var("term"), "'['", S("expr", list=List(), cond=True, var="expr_list"), "']'"], "index"),
-        Rule([Var("term"), "'.'", Var("ID")], "access"),
+        Rule([Var("term"), "'.'", Var("id")], "access"),
         Rule(["'('", S("expr", list=List(), cond=True, var="expr"), "')'"], "parens"),
         Rule(["'['", S("expr", list=List(), cond=True, var="expr_list"), "']'"], "array")
     ])

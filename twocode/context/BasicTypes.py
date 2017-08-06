@@ -1,71 +1,22 @@
 from twocode.context.Operators import *
-from twocode.context.Objects import *
 from twocode import Utils
 import twocode.utils.String
+import inspect
 
-def gen_types(context):
-    ops = Utils.merge_dicts(*(Utils.invert_dict(dict) for dict in [op_math, op_compare, op_unary, op_assign]))
-    def gen_binop(op):
-        def f(a, b):
-            return eval("a {} b".format(op))
-        return f
-    def gen_unop(op):
-        def f(a):
-            return eval("{}a".format(op))
-        return f
-    def pass_op(type, func_name, b_type=None, return_type=None):
-        func = Func(native=
-            (gen_binop if b_type else gen_unop)(ops[func_name])
-        )
-        func.args = [Arg("a", type)]
-        if b_type:
-            func.args.append(Arg("b", context.eval(b_type)))
-        func.return_type = context.eval(return_type)
-        type.__fields__[func_name] = func
-    def pass_repr(type, func):
-        def f(this):
-            return func(this)
-        type.__fields__["__repr__"] = Func(native=f, args=[Arg("this", type)], return_type=context.builtins.String)
-    def getitem(this, index):
-        return this[index]
-    def setitem(this, index, value):
-        this[index] = value
-        return value # a
-    def pass_index(type, index_type):
-        type.__fields__["__getitem__"] = Func(native=getitem, args=[
-            Arg("this", type),
-            Arg("index", context.eval(index_type)),
-        ])
-        type.__fields__["__setitem__"] = Func(native=setitem, args=[
-            Arg("this", type),
-            Arg("index", context.eval(index_type)),
-            Arg("value", context.eval(index_type)),
-        ])
-    def gen_method(name):
-        def f(*args, **kwargs):
-            obj = context.scope['__this__'] # unwrap?
-            return eval("obj.{}".format(name))(*args, **kwargs)
-        return f
-    def pass_method(type, name, signature, rename=None):
-        if rename is None: rename = name
-        method = Func(native=gen_method(name))
-        method.args = [Arg("this"), type] #
-        type.__fields__[rename] = method
-    def pass_conv(type, retype):
-        def f(): # so self should shouldnt be there? right now not as it is an invisible layer below
-            this = context.scope['__this__']
-            return retype(this)
-        type.__fields__["__conv__"] = Func(native=f)
-        pass
-        # int to float
-
+def add_types(context):
+    Type, Func, Arg = [context.obj[name] for name in "Type Func Arg".split()]
     def gen_type(name):
-        type = Class()
-        type.__name__ = name
+        type = context.obj.Type()
         context.builtins[name] = type
         return type
+    def attach(type, name, **kwargs):
+        def wrap(func):
+            type.__fields__[name] = Func(native=func, **kwargs)
+        return wrap
 
     Null = gen_type("Null")
+    Dynamic = gen_type("Dynamic")
+
     Bool = gen_type("Bool")
     Int = gen_type("Int")
     Float = gen_type("Float")
@@ -74,85 +25,137 @@ def gen_types(context):
     Map = gen_type("Map")
     Set = gen_type("Set")
 
+    Dynamic.__base__ = Map
+
+    def pass_init(type, func):
+        @attach(type, "__new__", return_type=type)
+        def new():
+            return context.obj.Object(type=type, this=func())
+        signature = inspect.signature(func)
+        @attach(type, "__init__", args=[Arg("this", type=type)] + [Arg(arg.name, type=Dynamic) for arg in signature.parameters.values()])
+        def init(this, *args, **kwargs):
+            this.__this__ = func(*args, **kwargs)
+            # rm use of this in others
+    pass_init(Null, lambda: None)
+    pass_init(Dynamic, lambda val=None: {} if val is None else val)
+    pass_init(Bool, lambda val=False: val)
+    pass_init(Int, lambda val=0: val)
+    pass_init(Float, lambda val=0.0: val)
+    pass_init(String, lambda val="": val)
+    pass_init(List, lambda val=None: [] if val is None else val)
+    pass_init(Map, lambda val=None: {} if val is None else val)
+    pass_init(Set, lambda val=None: set() if val is None else val)
+
+    def pass_repr(type, func):
+        type.__fields__["__repr__"] = Func(native=func, args=[Arg("this", type)], return_type=String)
     pass_repr(Null, lambda obj: "null")
+    # dynamic repr to itself
     pass_repr(Bool, lambda obj: "true" if obj else "false")
     pass_repr(Int, lambda obj: repr(obj))
     pass_repr(Float, lambda obj: repr(obj))
-    def r(obj):
-        code = twocode.utils.String.escape(obj)
-        return code
-    pass_repr(String, r)
-    def r(obj):
-        items = [context.call(context.builtins.repr, ([item], {})) for item in obj]
-        items = [context.unwrap_value(item) for item in items]
-        return "[{}]".format(", ".join(items))
-    pass_repr(List, r)
+    pass_repr(String, lambda obj: twocode.utils.String.escape(obj))
+    pass_repr(List, lambda obj: "[{}]".format(", ".join(context.unwrap_value(context.builtins.repr.native(item)) for item in obj)))
     pass_repr(Map, lambda obj: "[{}]".format(", ".join(["{}: {}".format(context.unwrap_value(context.builtins.repr.native(key)), context.unwrap_value(context.builtins.repr.native(value))) for key, value in obj.items()])))
-    pass_repr(Set, lambda obj: "{{}}".format(", ".join([context.unwrap_value(context.builtins.repr.native(item)) for item in obj]))) # to short func
+    pass_repr(Set, lambda obj: "@set {{}}".format(", ".join([context.unwrap_value(context.builtins.repr.native(item)) for item in obj]))) # to short func
 
-    def f(obj):
+    def pass_from(type):
+        def wrap(func):
+            type.__fields__["__from__"] = Func(native=func, args=[Arg("obj", Dynamic)], return_type=type)
+        return wrap
+    @pass_from(Dynamic)
+    def dynamic_from(obj):
+        return obj
+    @pass_from(Bool)
+    def bool_from(obj):
         if obj is not None:
             return True
         return False
-    Bool.__fields__["__from__"] = Func(native=f)
-    def f(obj):
+    @pass_from(Float)
+    def float_from(obj):
+        if isinstance(obj, int):
+            return obj
+        raise TypeError()
+    @pass_from(String)
+    def string_from(obj):
         obj = context.wrap_value(obj)
-        type = obj.__type__
-        if "__str__" in obj.__bound__:
-            return context.call(obj.__bound__["__str__"], ([], {}))
-        if "__repr__" in obj.__bound__:
-            return context.call(obj.__bound__["__repr__"], ([], {}))
-        return "<path.A object at ID>"
-    String.__fields__["__from__"] = Func(native=f)
+        impl = context.defines(obj, "__str__")
+        if impl:
+            return context.call(impl, ((), {}))
+        impl = context.defines(obj, "__repr__")
+        if impl:
+            return context.call(impl, ((), {}))
+        return "<path.A object at id>"
 
-    for dict in [
+    ops = Utils.merge_dicts(*(Utils.invert_dict(dict) for dict in [op_math, op_compare, op_unary, op_assign]))
+    def pass_op(type, name, b_type=None, return_type=None):
+        op = ops[name]
+        func = Func(native=lambda a, b: eval("a {} b".format(op)) if b_type else lambda a: eval("{}a".format(op)))
+        func.args = [Arg("a", type)]
+        if b_type:
+            func.args.append(Arg("b", b_type))
+        func.return_type = return_type
+        type.__fields__[name] = func
+
+    for group in [
         Utils.redict(op_math, remove="/".split()),
         op_compare,
     ]:
-        for symbol, func_name in dict.items():
-            pass_op(Int, func_name, "Int", "Int")
-    for symbol, func_name in op_unary.items():
-        pass_op(Int, func_name, return_type="Int")
+        for symbol, name in group.items():
+            pass_op(Int, name, Int, Int)
+    for symbol, name in op_unary.items():
+        pass_op(Int, name, return_type=Int)
 
-    for dict in [
+    for group in [
         Utils.redict(op_math, add="+-*/"),
         op_compare,
     ]:
-        for symbol, func_name in dict.items():
-            pass_op(Float, func_name, "Float", "Float")
-    for symbol, func_name in Utils.redict(op_unary, remove="~".split()).items():
-        pass_op(Float, func_name, return_type="Float")
+        for symbol, name in group.items():
+            pass_op(Float, name, Float, Float)
+    for symbol, name in Utils.redict(op_unary, remove="~".split()).items():
+        pass_op(Float, name, return_type=Float)
+
+    for type in String, List:
+        for args in [
+            ("__add__", type, type),
+            ("__mul__", Int, type),
+        ]:
+            pass_op(type, *args)
+    for type in List, Set:
+        for args in [
+            ("__and__", type, type),
+            ("__or__", type, type),
+            ("__xor__", type, type),
+        ]:
+            pass_op(type, *args)
 
     # pass_op(String, op_assign["+="], "List", "List")    += not working
 
-    # value/ref
-    # @struct
-
+    def hash(index):
+        if index.__hash__ is not None:
+            return index
+        else:
+            return id(index)
+    def getitem(this, index):
+        return this[hash(index)]
+    def setitem(this, index, value):
+        this[hash(index)] = value
+    def pass_index(type, index_type, value_type):
+        type.__fields__["__getitem__"] = Func(native=getitem, args=[
+            Arg("this", type),
+            Arg("index", index_type),
+        ], return_type=value_type)
+        type.__fields__["__setitem__"] = Func(native=setitem, args=[
+            Arg("this", type),
+            Arg("index", index_type),
+            Arg("value", value_type),
+        ])
     # name -> name<T>
-    for type in String, List:
-        pass_index(type, "Int")
-    for type in String, List:
-        for args in '''
-            __add__ {type_name} {type_name}
-            __mul__ Int {type_name}
-        '''.format(type_name=type.__name__).strip().splitlines():
-            pass_op(type, *args.split())
-    for type in List, Set:
-        for args in '''
-            __and__ {type_name} {type_name}
-            __or__ {type_name} {type_name}
-            __xor__ {type_name} {type_name}
-        '''.format(type_name=type.__name__).strip().splitlines():
-            pass_op(type, *args.split())
-
-    for args in '''
-        format *Iter<String>->String
-        split ->List<String>
-        join Iter<String>->String
-    '''.strip().splitlines():
-        pass_method(String, *args.split())
-
-    for args in '''
-        append T->T push
-    '''.strip().splitlines():
-        pass_method(List, *args.split())
+    for type in String, List, Map:
+        pass_index(type, Int, None)
+    # impl
+    @attach(Dynamic, "__getattribute__", args=[Arg("this", Dynamic), Arg("name", String)], return_type=Dynamic)
+    def dynamic_getattribute(this, name):
+        return this.__this__[name]
+    @attach(Dynamic, "__getattribute__", args=[Arg("this", Dynamic), Arg("name", String), Arg("value", Dynamic)])
+    def dynamic_setattribute(this, name, value):
+        this.__this__[name] = value

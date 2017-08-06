@@ -1,10 +1,8 @@
-from twocode.context.Objects import *
 from twocode import Utils
 from twocode.utils.Nodes import switch
 import builtins
 from twocode.context.Operators import *
 from twocode.context.Literals import *
-from copy import deepcopy
 
 def add_context(context):
     node_types = context.node_types
@@ -14,15 +12,14 @@ def add_context(context):
     args_type = node_types["args"]
     call = lambda term, func, args: call_type(access_type(term, func), args_type([arg_type(arg) for arg in args])) # call?
 
-    context.scope = Scope()
-    context.stack = context.scope.stack
-
     def add_exceptions():
         class Return(Exception):
             def __init__(self, value=None):
                 self.value = value
         class EvalException(Exception):
             pass
+        class RuntimeInterrupt(Exception):
+            "stop the evaluation of current statement"
 
         class InvalidIfChainEmpty(Exception):
             "if_chain node has no if_blocks"
@@ -34,75 +31,55 @@ def add_context(context):
         class InvalidUnpack(Exception):
             "arguments unpack in wrong order"
 
-        exc = Utils.Object()
-        for name, exception in dict(locals()).items():
-            exc[name] = exception
-        context.exc = exc
+        context.exc = Utils.Object()
+        for name, exception in Utils.redict(locals(), ["context"]).items():
+            context.exc[name] = exception
     add_exceptions()
 
     def add_core():
-        def swap_stack(scope):
-            if scope is None: scope = Scope() # weird. also builtins into normal one?
-            old_scope = context.scope
-            context.scope = scope
-            context.stack = scope.stack
-            return old_scope
-        def declare(name, obj):
-            context.stack[-1][name] = obj
-        # # if type is None?
-        # parse
-        def hasattr(obj, name):
+        def call(func, args):
+            # wat?
+            func, (args, kwargs) = callable(func, args)
+            scope = context.unpack_args(func, (args, kwargs))
+            for arg in func.args:
+                if not arg.pack:
+                    if arg.name in scope:
+                        scope[arg.name] = context.wrap_value(scope[arg.name])
+                    else:
+                        scope[arg.name] = context.eval(arg.default)
+                elif arg.pack == "args":
+                    scope[arg.name] = context.wrap_value((context.wrap_value(value) for value in scope[arg.name]))
+                elif arg.pack == "kwargs":
+                    scope[arg.name] = context.wrap_value({name: context.wrap_value(value) for name, value in scope[arg.name].items()})
+            return call_func(func, scope)
+        def call_func(func, scope):
             try:
-                context.getattr(obj, name)
-                return True
-            except AttributeError:
-                return False
-        def getattr(obj, name):
-            type = obj.__type__
-            if name in context.metafields(type):
-                return obj[name]
-            if "__getattr__" in type.__fields__:
-                try:
-                    return context.call(type.__fields__["__getattr__"], ([obj, name], {}))
-                except AttributeError:
-                    pass
-            fields = context.inherit_fields(type)
-            if name in fields:
-                attr = fields[name]
-                if not isinstance(attr, Func):
-                    return obj[name]
+                value = None
+                if func.native:
+                    args, kwargs = context.pack_args(func, scope)
+                    args = [context.unwrap_value(arg) for arg in args]
+                    kwargs = {key: context.unwrap_value(arg) for key, arg in kwargs.items()}
+                    value = func.native(*args, **kwargs)
+                    value = context.wrap_value(value)
+                    raise context.exc.Return(value)
                 else:
-                    return obj.__bound__[name]
-            raise AttributeError("{} object has no attribute {}".format(repr(type.__name__), repr(name)))
-        def setattr(obj, name, value):
-            type = obj.__type__
-            if name in context.metafields(type):
-                obj[name] = value
-                return obj[name]
-            if "__setattr__" in type.__fields__:
-                try:
-                    return context.call(type.__fields__["__setattr__"], ([obj, name, value], {}))
-                except AttributeError:
-                    pass
-            fields = context.inherit_fields(type)
-            if name in fields:
-                attr = fields[name]
-                if not isinstance(attr, Func):
-                    obj[name] = value
-                    return obj[name]
-            raise AttributeError("{} object has no attribute {}".format(repr(type.__name__), repr(name)))
-        def call(obj, args):
-            if type(obj) is Func:
-                return func_call(obj, args)
-            elif type(obj) is Class:
-                return construct(obj, args)
-            elif type(obj) is BoundMethod:
-                return bound_method_call(obj, args)
-            else:
-                return obj_call(obj, args)
-        def pass_args(func, args):
+                    old_scope = context.swap_stack(func.scope)
+                    context.stack.append(scope)
+                    context.stack.append(context.new(context.builtins.Scope))
+                    context.eval(func.code)
+            except context.exc.Return as exc:
+                value = exc.value
+            finally:
+                if not func.native:
+                    context.stack.pop()
+                    context.stack.pop()
+                    context.swap_stack(old_scope)
+            return value
+        def unpack_args(func, args):
             args, kwargs = args
+            args = list(args)
             scope = {}
+
             for arg in func.args:
                 if not arg.pack:
                     if args:
@@ -111,8 +88,7 @@ def add_context(context):
                         if arg.name in kwargs:
                             scope[arg.name] = kwargs[arg.name]
                             del kwargs[arg.name]
-                        else:
-                            scope[arg.name] = context.eval(context.unwrap_code(arg.default))
+                        # else what?
                 elif arg.pack == "args":
                     scope[arg.name] = args
                     args = []
@@ -120,56 +96,60 @@ def add_context(context):
                     scope[arg.name] = kwargs
                     kwargs = {}
             if args or kwargs:
-                pass # raise error
+                raise SyntaxError("signature mismatch while unpacking arguments")
             return scope
+        def pack_args(func, scope):
+            args, kwargs = [], {}
+            for arg in func.args:
+                if not arg.pack:
+                    args.append(scope[arg.name])
+                elif arg.pack == "args":
+                    args.extend(context.unwrap_value(scope[arg.name]))
+                elif arg.pack == "kwargs":
+                    kwargs.update(context.unwrap_value(scope[arg.name]))
+                del scope[arg.name]
+            if scope:
+                raise SyntaxError("signature mismatch while packing arguments")
+
+            args = tuple(args)
+            return args, kwargs
         def pack_level(pack, name=None):
             if name: return 2
             if not pack: return 0
             if pack == "args": return 1
             if pack == "kwargs": return 2
-        def func_call(func, args):
-            args, kwargs = args
-            old_scope = context.swap_stack(func.scope)
-            try:
-                value = None
-                if func.native:
-                    args = [context.unwrap_value(arg) for arg in args]
-                    kwargs = {key: context.unwrap_value(arg) for key, arg in kwargs.items()}
-                    value = func.native(*args, **kwargs)
-                    value = context.wrap_value(value)
-                    raise context.exc.Return(value)
+        def callable(obj, args):
+            while True:
+                if obj.__type__ is context.builtins.Func:
+                    return obj, args
+                elif obj.__type__ is context.builtins.Type:
+                    obj, args = construct_call(obj, args)
+                elif obj.__type__ is context.builtins.BoundMethod:
+                    obj, args = bound_method_call(obj, args)
                 else:
-                    context.stack.append(context.pass_args(func, (args, kwargs)))
-                    context.stack.append({})
-                    context.eval(context.unwrap_code(func.code))
-            except context.exc.Return as exc:
-                value = exc.value
-            finally:
-                if not func.native:
-                    context.stack.pop()
-                    context.stack.pop()
-                context.swap_stack(old_scope)
-            return value
-        def obj_call(obj, args):
-            func = context.getattr(obj, "__call__")
-            return context.call(func, args)
+                    obj, args = obj_call(obj, args)
+        def construct_call(type, args):
+            Arg = context.obj.Arg
+            func = context.obj.Func(native=lambda this, *args, **kwargs: context.construct(this, (args, kwargs)), args=[Arg("this", type=context.builtins.Type), Arg("args", pack="args"), Arg("kwargs", pack="kwargs")])
+            # weird
+            return func, args
         def bound_method_call(bound_method, args):
             args, kwargs = args
             obj, func = bound_method.obj, bound_method.func
-            return context.call(func, ([obj, *args], kwargs))
-        def new(cls):
+            return func, ((obj, *args), kwargs)
+        def obj_call(obj, args):
+            func = context.getattr(obj, "__call__")
+            return func, args
+        def new(type):
             try:
-                new = context.getattr(cls, "__new__")
-                factory = lambda: context.call(new, ([], {}))
+                new = context.getattr(type, "__new__")
+                factory = lambda: context.call(new, ((), {}))
             except AttributeError:
-                factory = lambda: Object(cls)
+                factory = lambda: context.obj.Object(type)
             obj = factory()
-            obj.__type__ = cls
-            for var, attr in context.inherit_fields(cls).items():
-                if not isinstance(attr, Func):
+            for var, attr in context.inherit_fields(type).items():
+                if attr.__type__ is context.builtins.Var:
                     obj[var] = context.eval(attr)
-                else:
-                    obj.__bound__[var] = BoundMethod(obj, attr)
             return obj
         def inherit_fields(type):
             fields = {}
@@ -182,18 +162,19 @@ def add_context(context):
             types = []
             while t:
                 types.insert(0, t)
-                t = t.__parent__
+                t = t.__base__
             return types
         def inheritable(type, attr):
-            if not isinstance(attr, Func):
+            if attr.__type__ is context.builtins.Var:
                 return True
-            if len(attr.args):
+            if attr.args:
                 arg = attr.args[0]
-                if arg.name == "this" and arg.type == type:
+                # if arg.name == "this" and arg.type == type: ## inherit __call__?
+                if arg.name == "this": ## inherit __call__?
                     return True
             return False
-        def construct(cls, args):
-            obj = context.new(cls)
+        def construct(type, args): # uses call, care where we use it
+            obj = context.new(type)
             try:
                 constructor = context.getattr(obj, "__init__")
             except AttributeError:
@@ -201,24 +182,24 @@ def add_context(context):
             if constructor:
                 context.call(constructor, args)
             return obj
-        def metafields(t):
-            fields = set()
-            fields.update("__type__ __bound__".split()) # __this__
-            return fields
-        def unwrap_value(value): # obj?
-            while isinstance(value, Object):
+        def unwrap_value(value):
+            while isinstance(value, context.obj.Object):
                 # if "__this__" in value.__type__.__fields__:
-                if "__this__" in value.__dict__:
-                    value = value.__dict__["__this__"]
-                else:
+                # and NOT in fields
+                try:
+                    value = getattr(value, "__this__")
+                except AttributeError:
                     break
             return value
         def wrap_value(value):
-            t = type(value)
+            t = builtins.type(value)
             if t not in literal_wrap:
                 return value
-            obj = context.new(context.builtins[literal_wrap[t]])
-            obj.__this__ = value
+            type = context.builtins[literal_wrap[t]]
+            obj = context.obj.Object(type, this=value)
+            for var, attr in context.inherit_fields(type).items():
+                if attr.__type__ is context.builtins.Var:
+                    obj[var] = context.eval(attr.value)
             return obj
         def copy(value):
             assert 0 == 1
@@ -230,36 +211,45 @@ def add_context(context):
             # search conversions to
             # search abstract from
             # error
+        def defines(obj, name, signature=None):
+            try:
+                method = context.getattr(obj, name)
+            except AttributeError:
+                return None
+            if method.__type__ is not context.builtins.BoundMethod:
+                return None
+            # signature
+            return method
 
         for name, instruction in Utils.redict(locals(), ["context"]).items():
-            context.__dict__[name] = instruction
+            setattr(context, name, instruction)
     add_core()
 
     def add_assign():
-        def term_ID(node, value):
+        def term_id(node, value):
             value = context.eval(value)
-            context.scope[node.ID] = value
+            context.scope[node.id] = value
             return value
 
 
             value = context.eval(value)
-            ID = node.ID
-            if ID in context.scope:
-                return context.scope[ID]
+            id = node.id
+            if id in context.scope:
+                return context.scope[id]
             if "this" in context.scope:
                 this = context.scope["this"]
                 try:
-                    return context.getattr(this, ID)
+                    return context.getattr(this, id)
                 except AttributeError:
                     pass
-            raise NameError("name {} is not defined".format(repr(ID)))
+            raise NameError("name {} is not defined".format(repr(id)))
 
             # lookup explicit from sources
 
         def term_access(node, value):
             obj = context.eval(node.term)
             value = context.eval(value)
-            return context.setattr(obj, node.ID, value)
+            return context.setattr(obj, node.id, value)
         def term_index(node, value):
             ast = call(node.term, "__setitem__", [node.tuple, value])
             return context.eval(ast)
@@ -274,72 +264,84 @@ def add_context(context):
             for stmt in node.lines:
                 value = context.eval(stmt)
             return value
-        def type_ID(node):
+        def type_ref_id(node):
             # print(node)
-            return context.scope[node.ID]
-        def func(node):
-            func = Func() # __bound__
-            if node.ID:
-                context.declare(node.ID, func)
+            return context.scope[node.id]
+        def func_def(node):
+            func = context.obj.Func()
+            if node.id:
+                context.declare(node.id, func)
             level = 0
             for arg in node.args:
-                arg_pack = context.pack_level(arg.pack, arg.ID)
+                arg_pack = context.pack_level(arg.pack, arg.id)
                 if arg_pack < level:
                     raise context.exc.InvalidPack()
                 else:
                     level = arg_pack
 
-                func_arg = Arg()
-                func_arg.name = arg.ID
-                print(arg.type)
-                func_arg.type = context.eval(arg.type)
-                print(func_arg.type, builtins.type(func_arg.type))
-                # type_ID
+                func_arg = context.obj.Arg()
+                func_arg.name = arg.id
+                #### print(arg.type)
+                func_arg.type = context.eval(arg.type_ref)
+                #### print(func_arg.type, builtins.type(func_arg.type))
+                # type_id
                 if arg.value is not None:
-                    func_arg.default = context.wrap_code(arg.value)
+                    func_arg.default = arg.value
                 func_arg.pack = arg.pack
+                func_arg.macro = arg.macro
                 func.args.append(func_arg)
             func.return_type = context.eval(node.return_type) # we cant eval type
-            func.code = context.wrap_code(node.block)
+            # print("FUNC!")
+            # print(node.block)
+            func.code = node.block
             func.scope = context.scope.copy()
             return func
-        def cls(node):
-            cls = Class()
-            if node.ID:
-                cls.__name__ = context.wrap_value(node.ID) # wrap everywhere! a class for it, do it for basic types. Int.__name__
-                context.declare(node.ID, cls)
-            if node.parent:
-                cls.__parent__ = context.eval(node.parent)
-            context.declare("__call__", Func(native=lambda: context.new(cls))) # thats not how it works?
-                # python-made classes dont have this
+        def type_def(node):
+            # func.scope = context.scope.copy()
+            # not saving for every func is efficient, but actually shouldnt be done
+            # what context for the macros?
+            # and what about outside, patched funcs/vars?
+
+            # __vars__
+            type = context.obj.Type()
+            if node.id:
+                type.__name__ = context.wrap_value(node.id) # wrap everywhere! a class for it, do it for basic types. Int.__name__
+                context.declare(node.id, type)
+            if node.base:
+                type.__base__ = context.eval(node.base)
             for stmt in node.block.lines:
                 type_name = builtins.type(stmt).__name__
-                if type_name == "stmt_var":
+                if type_name == "stmt_var": ###
                     decl = stmt.vars[0]
-                    assign = stmt.assign_chain[0]
-                    cls.__fields__[decl.ID] = context.wrap_code(assign.tuple)
+                    var = context.obj.Var()
+                    var.type = context.eval(decl.type_ref) if decl.type_ref else context.builtins.Dynamic
+                    if stmt.assign_chain:
+                        assign = stmt.assign_chain[0]
+                        var.value = assign.tuple # fk
+                    type.__fields__[decl.id] = var
                     continue
                 elif type_name == "stmt_tuple":
                     stmt = stmt.tuple.expr
                     type_name = builtins.type(stmt).__name__
                     if type_name == "expr_func":
-                        stmt = stmt.func
-                        method = Func()
-                        if not stmt.ID:
-                            raise SyntaxError("anonymous function in class definition")
-                        cls.__fields__[stmt.ID] = method
+                        stmt = stmt.func_def
+                        method = context.obj.Func()
+                        if not stmt.id:
+                            raise SyntaxError("anonymous function in type definition")
+                        type.__fields__[stmt.id] = method
+                        method.args.append(context.obj.Arg("this", type))
                         for arg in stmt.args:
-                            method_arg = Arg()
-                            method_arg.name = arg.ID
-                            method_arg.default = context.wrap_code(arg.value)
+                            method_arg = context.obj.Arg()
+                            method_arg.name = arg.id
+                            method_arg.default = arg.value
                             method_arg.pack = arg.pack
                             method.args.append(method_arg)
                         method.return_type = context.eval(stmt.return_type)
-                        method.code = context.wrap_code(stmt.block)
+                        method.code = stmt.block
                         method.scope = context.scope.copy()
                         continue
-                raise SyntaxError("invalid statement in class definition")
-            return cls
+                raise SyntaxError("invalid statement in type definition")
+            return type
         def in_block(node):
             expr = context.eval(node.expr)
             try:
@@ -352,17 +354,19 @@ def add_context(context):
             # exec, overloadable, scope wrapper
         def for_loop(node):
             iter = context.eval(node.iter)
-            if "has_next" in iter.__bound__ and "next" in iter.__bound__:
+            # if retypes to ?
+            if context.defines(iter, "has_next") and context.defines(iter, "next"):
+                # return types
                 iter = iter
-            elif "iter" in iter.__bound__:
+            elif context.defines(iter, "iter"):
                 iter = call(iter, "iter", [])
-            elif "__getitem__" in iter.__bound__ and context.hasattr(node, "length"):
+            elif context.defines(iter, "__getitem__") and context.hasattr(node, "length"):
                 iter = iter ##
             else:
                 raise TypeError("{} object is not iterable".format(repr(iter.__type__.__name__)))
             var = node.tuple.expr.term
             value = []
-            # class Iter: { var iter = null; func __init__(i): { iter = i }; func has_next(): { return false } }
+            # type Iter: { var iter = null; func __init__(i): { iter = i }; func has_next(): { return false } }
             # should not be iterable
             while call(iter, "has_next", []).__this__:
                 context.scope[var] = call(iter, "next", [])
@@ -398,66 +402,93 @@ def add_context(context):
         def stmt_var(node):
             decl = node.vars[0]
             if not node.assign_chain:
-                return # default
+                context.declare(decl.id, context.eval(assign.tuple)) # null
+                return
+
+            # type = context.eval(decl.type) if decl.type else context.builtins.Dynamic
+            '''
+                    if stmt.assign_chain:
+                        assign = stmt.assign_chain[0]
+                        value = context.wrap_code(assign.tuple)
+                    type.__fields__[decl.id] = Var(value, type)
+            '''
+
             assign = node.assign_chain[0]
-            # context.scope[decl.ID] = Value(context.eval(assign.tuple))
-            context.declare(decl.ID, context.eval(assign.tuple))
+            # context.scope[decl.id] = Value(context.eval(assign.tuple))
+            context.declare(decl.id, context.eval(assign.tuple))
         def stmt_return(node):
             raise context.exc.Return(context.eval(node.tuple))
         def stmt_import(node):
-            context.imp(node.imp)
-        def args(node):
+            for path in node.imp.imports:
+                module = context.imp(".".join(path.path))
+                context.declare(path.path[-1], module)
+                # rename, from etc
+        def term_id(node):
+            # scope.id
+            # sources.id
+            # scope.this.id
+
+
+
+            id = node.id
+            if id in context.scope:
+                return context.scope[id]
+            if "this" in context.scope:
+                this = context.scope["this"]
+                try:
+                    return context.getattr(this, id)
+                except AttributeError:
+                    pass
+            raise NameError("name {} is not defined".format(repr(id)))
+        # t vs e order?
+        def term_access(node):
+            obj = context.eval(node.term)
+            return context.getattr(obj, node.id) # !!!
+        def term_index(node):
+            ast = call(node.term, "__getitem__", [node.tuple])
+            return context.eval(ast)
+        def term_call(node):
             args, kwargs = [], {}
             level = 0
-            for arg in node.args:
-                arg_pack = context.pack_level(arg.pack, arg.ID)
+            for arg in node.args.args:
+                arg_pack = context.pack_level(arg.pack, arg.id)
                 if arg_pack < level:
                     raise context.exc.InvalidUnpack()
                 else:
                     level = arg_pack
 
-                value = context.eval(arg.value)
-                if arg.ID:
-                    kwargs[arg.ID] = value
+                code = arg.value
+                if arg.id:
+                    kwargs[arg.id] = code
                 if not arg.pack:
-                    args.append(value)
+                    args.append(code)
                 if arg.pack == "args":
-                    args.extend(value)
+                    args.extend(code) #
                 if arg.pack == "kwargs":
-                    kwargs.update(value)
-            return args, kwargs
-        def term_ID(node):
-            # scope.ID
-            # sources.ID
-            # scope.this.ID
+                    kwargs.update(code) # wat
 
-
-
-            ID = node.ID
-            if ID in context.scope:
-                return context.scope[ID]
-            if "this" in context.scope:
-                this = context.scope["this"]
-                try:
-                    return context.getattr(this, ID)
-                except AttributeError:
-                    pass
-            raise NameError("name {} is not defined".format(repr(ID)))
-        def term_access(node):
-            obj = context.eval(node.term)
-            return context.getattr(obj, node.ID) # !!!
-        def term_index(node):
-            ast = call(node.term, "__getitem__", [node.tuple])
-            return context.eval(ast)
-        def term_call(node):
             func = context.eval(node.term)
-            args = context.eval(node.args)
-            return context.call(func, ([args], {}))
+            func, args = context.callable(func, (args, kwargs))
+            scope = context.unpack_args(func, args)
+            eval = lambda value: context.eval(value) if not arg.macro else context.wrap_code(value)
+            for arg in func.args:
+                if not arg.pack:
+                    if arg.name in scope:
+                        scope[arg.name] = eval(scope[arg.name])
+                    else:
+                        scope[arg.name] = context.eval(arg.default)
+                elif arg.pack == "args":
+                    scope[arg.name] = context.wrap_value((eval(value) for value in scope[arg.name]))
+                elif arg.pack == "kwargs":
+                    scope[arg.name] = context.wrap_value({name: eval(value) for name, value in scope[arg.name].items()})
+            return context.call_func(func, scope)
         def term_list(node):
             type = context.builtins.List
             obj = context.new(type)
             items = context.eval(node.tuple)
             obj.__this__ = list(items) if builtins.type(items) is builtins.tuple else [items]
+            print(builtins.type(obj.__this__), len(obj.__this__))
+            print("t", builtins.type(obj.__type__))
             return obj
         def term_map(node):
             type = context.builtins.Map
@@ -470,27 +501,35 @@ def add_context(context):
                 obj.__this__[key] = value
             return obj
         def literal(node):
-            l_type = node.type
-            type_name = literal_type[l_type]
-            type = context.builtins[type_name]
+            l_type = node.lit_type
             value = literal_eval[l_type](node.value)
-            obj = context.new(type) # pass
+            return context.wrap_value(value)
             # REASON: constructors send a string literal to native(), causing recursion
-            obj.__this__ = value
+            # new looks up __new__ with getattr, which uses call for its args, which wraps values and creates literals
+        def expr_term(node):
+            obj = context.eval(node.term)
+            type = obj.__type__
+            try:
+                op = context.getattr(type, "__expr__")
+            except AttributeError:
+                op = None
+            if op:
+                obj = context.call(op, ((obj,), {}))
             return obj
-
         def expr_math(node):
             a = context.eval(node.expr1)
             b = context.eval(node.expr2)
             type = a.__type__
+            # print("want", node.op)
             op = context.getattr(type, op_math[node.op]) # !!!
-            return context.call(op, ([a, b], {}))
+            # print(builtins.type(a), builtins.type(type), builtins.type(b))
+            return context.call(op, ((a, b), {}))
         def expr_compare(node):
             a = context.eval(node.expr1)
             b = context.eval(node.expr2)
             type = a.__type__
             op = context.getattr(type, op_compare[node.op]) # !!!
-            return context.call(op, ([a, b], {}))
+            return context.call(op, ((a, b), {}))
         def expr_affix(node):
             obj = context.eval(node.term)
             op = None
@@ -523,16 +562,18 @@ def add_context(context):
             obj = call(a, "contains", [b]) # all instances of call,... getattr... how do i store the keys? !!!
             obj = context.convert(obj, context.builtins.Bool)
             return obj
-        def expr_decorator(node): # rename? filter?
+        def expr_decorator(node): # rename? map a -> b, map_call
             # function retains name
             decorator = context.eval(node.term)
-            obj = context.eval(node.expr)
-            return context.call(decorator, ([obj], {}))
+            if not decorator.args[0].macro:
+                obj = context.eval(node.expr)
+            else:
+                obj = context.wrap_code(node.expr)
+            return context.call(decorator, ((obj,), {}))
         def expr_macro(node):
             return context.wrap_code(node.code)
         tuple = lambda node: builtins.tuple(context.eval(expr) for expr in node.expr_list)
         tuple_expr = lambda node: context.eval(node.expr)
-        expr_term = lambda node: context.eval(node.term)
         expr_unary = lambda node: context.eval(call(node.term, op_unary[node.op], []))
         expr_block = lambda node: context.eval(node.block)
         expr_if = lambda node: context.eval(node.if_chain)
@@ -540,8 +581,8 @@ def add_context(context):
         expr_for = lambda node: context.eval(node.for_loop)
         expr_while = lambda node: context.eval(node.while_loop)
         expr_in_block = lambda node: context.eval(node.in_block)
-        expr_func = lambda node: context.eval(node.func)
-        expr_class = lambda node: context.eval(node.cls)
+        expr_func = lambda node: context.eval(node.func_def)
+        expr_type = lambda node: context.eval(node.type_def)
         term_literal = lambda node: context.eval(node.literal)
         term_tuple = lambda node: context.eval(node.tuple)
 
@@ -555,11 +596,7 @@ def add_context(context):
         def to_str(obj):
             s = repr(obj)
             if len(s) > 500:
-                if type(obj) is Class:
-                    return obj.__name__
-                if hasattr(obj, "__type__"):
-                    return obj.__type__.__name__
-                return type(obj).__name__
+                return "?-Type"
             return s.strip()
         for arg in args:
             args_str.append(to_str(arg))

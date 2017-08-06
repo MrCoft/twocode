@@ -1,7 +1,7 @@
 import re
 from twocode.utils.Nodes import all_common, free_batch, substr
 from twocode.utils.Interface import preview
-from twocode.utils.String import shared_str
+from twocode.utils.String import shared_str, escape
 
 # ignore ws linesf
 
@@ -11,7 +11,7 @@ class Token:
         if data:
             self.data = data
     def __repr__(self):
-        return str(self.__dict__)
+        return self.type + ("({})".format(escape(self.data)) if hasattr(self, "data") else "")
 
 class Lexer:
     def __init__(self):
@@ -88,7 +88,7 @@ class LexModel:
                 return rule
             rule_pass = basic_rule_gen(lambda match: (token, match))
             rule_token = basic_rule_gen(lambda match: (token, None))
-            rule_raw = basic_rule_gen(lambda match: ("'" + match + "'", match))
+            rule_raw = basic_rule_gen(lambda match: ("'" + match + "'", None))
             def rule_none(lexer):
                 result = pattern.match(lexer.buffer)
                 if result:
@@ -167,6 +167,11 @@ class LexLanguage:
         self.unfit = {}
     def form_model(self):
         lex_model = LexModel()
+        sort = lambda list: sorted(sorted(list), key=len)
+        for keyword in sort(self.keywords):
+            lex_model.add_rule(keyword + "(?![_a-zA-Z0-9])", "raw")
+        for name, literal in sort(self.literals.items()):
+            lex_model.add_rule("({})(?![_a-zA-Z0-9])".format(literal), "pass", "LITERAL_" + name)
         all, common = all_common(self.ops.values())
         common |= all & self.raw
         all -= self.raw
@@ -174,7 +179,6 @@ class LexLanguage:
             match = group & common
             if match:
                 self.unfit[name] = match
-        sort = lambda list: sorted(sorted(list), key=len)
         all = all.union(self.raw)
         for batch in free_batch(list(all), substr):
             all -= set(batch)
@@ -188,14 +192,11 @@ class LexLanguage:
                     lex_model.add_rule("|".join(re.escape(item) for item in sort(items)), "pass", name)
             if batch:
                 lex_model.add_rule("|".join(re.escape(item) for item in sort(batch)), "raw")
-        for keyword in sort(self.keywords):
-            lex_model.add_rule(keyword + "(?![_a-zA-Z0-9])", "raw")
-        for name, literal in sort(self.literals.items()):
-            lex_model.add_rule("({})(?![_a-zA-Z0-9])".format(literal), "pass", "LITERAL_" + name)
-        lex_model.add_rule('[_a-zA-Z][_a-zA-Z0-9]*', "pass", "ID")
-        # lex_model.add_rule(r'(\r\n|\r|\n)[\t ]*(?=\r\n|\r|\n|$)', "line")
-        # REASON: empty line to EOL
+        lex_model.add_rule('[_a-zA-Z][_a-zA-Z0-9]*', "pass", "id")
+        lex_model.add_rule(r'\\(\r\n|\r|\n)', "none")
         # REASON: ignore \<EOL>
+        lex_model.add_rule(r'(\r\n|\r|\n)[\t ]*(?=\r\n|\r|\n|$)', "line")
+        # REASON: empty line to EOL
         if self.indent_block:
             lex_model.add_rule(r'(\r\n|\r|\n)[\t ]*.', "indent")
         lex_model.add_rule(r'\r\n|\r|\n', "line")

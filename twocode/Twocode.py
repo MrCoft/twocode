@@ -5,14 +5,13 @@ from twocode.parse.Context import Context as ParserContext
 from twocode.parse.Console import Console as ConsoleBase
 from twocode.utils.Nodes import map, switch, Var, regen_types
 from twocode.Repr import gen_repr
-from twocode.Context import add_context
 import os
 import sys
 
 def twocode_lexer():
     lex_lang = LexLanguage()
     lex_lang.keywords = set('''
-        var func class
+        var func type
         if else
         for in
         while break continue
@@ -37,7 +36,7 @@ def twocode_lexer():
         "null": 'null',
         "boolean": 'true|false',
         "integer": '0|[1-9][0-9]*',
-        "float": '((0|[1-9][0-9]*)(\\.\\d*)?|\\.\\d+)(([eE][+-]?\\d+)|(?!\\.))',
+        "float": '((0|[1-9][0-9]*)(\\.\\d*)?|\\.\\d+)([eE][+-]?\\d+)' + "|" + '((0|[1-9][0-9]*)(\\.\\d*)|\\.\\d+)(?!\\.)',
         "hexadecimal": '0[xX][0-9a-fA-F]+',
         "octal": '0[oO][0-7]+',
         "binary": '0[bB][01]+',
@@ -50,9 +49,6 @@ def twocode_lexer():
 
 # ellipsis literal
 
-
-
-
 def twocode_grammar():
     Rule = Grammar.Rule
     S = Grammar.Symbol
@@ -62,24 +58,23 @@ def twocode_grammar():
     grammar.add_symbol("code", [
         Rule([Var("stmt")], "create"),
         Rule([Var("code"), "DELIM", S("stmt", var="stmt")], "append"),
-        Rule(["TRAIL", Var("code")], "lead"), # was delim
+        Rule(["DELIM", Var("code")], "lead"),
         Rule([Var("code"), "TRAIL"], "trail"),
     ])
     grammar.add_symbol("DELIM", [
-        Rule(['EOL']),
+        Rule(["EOL"]),
         Rule(["';'"], "INLINE"),
     ])
     grammar.add_symbol("TRAIL", [
-        Rule(['EOL']),
+        Rule(["WS"], "WS"),
         Rule(["';'"], "INLINE"),
-        Rule(["WS"], "WS")
     ])
     grammar.add_symbol("block", [
         Rule([S("block_list", var="block")]),
         Rule([Var("stmt")], "single"),
     ])
     grammar.add_symbol("block_list", [
-        Rule(["ENTER", S("code", var="block"), "LEAVE"], allow_ws=False),
+        Rule(["ENTER", S("code", cond=True, var="block"), "LEAVE"], allow_ws=False),
         Rule(["'{'", S("code", cond=True, var="block"), "'}'"], "inline", allow_ws=False),
     ])
     grammar.add_symbol("imp", [
@@ -88,42 +83,51 @@ def twocode_grammar():
     ])
     grammar.add_symbol("path", [
         Rule([Var("path_list")]),
-        Rule([Var("path_list"), "'as'", Var("ID")], "name"),
+        Rule([Var("path_list"), "'as'", Var("id")], "name"),
     ])
     grammar.add_symbol("path_list", [
         Rule([S("path_item", list=List(delim="'.'"), var="path")], allow_ws=False),
     ])
     grammar.add_symbol("path_item", [
-        Rule([Var("ID")], "ID"),
+        Rule([Var("id")], "id"),
         Rule(["'*'"], "all"),
     ])
-    grammar.add_symbol("type", [
-        Rule([Var("ID")], "ID"),
-        Rule([Var("ID"), "'<'", S("args", var="params"), "'>'"], "params"),
-        Rule([S("type", list=List(delim="','"), var="arg_types"), "ARROW", S("type", list=List(delim="','"), var="return_types")], "func"), # broken, a->b->c
-        Rule(["'('", S("type", list=List(delim="','"), var="types"), "')'"], "tuple"),
+    grammar.add_symbol("type_ref", [
+        Rule([Var("id")], "id"), # does not support dot path - or any expr
+        Rule([Var("id"), "'<'", S("args", var="params"), "'>'"], "params"),
+        Rule([S("type_ref", list=List(delim="','"), var="arg_types"), "ARROW", S("type_ref", list=List(delim="','"), var="return_types")], "func_def"), # broken, a->b->c
+        # a->b
+        # var x:()->()
+        # var f:Float->Float
+        # var f:Func<Float, Float>
+        # func = obj(args=, code=, return_type=)
+        Rule(["'('", S("type_ref", list=List(delim="','"), var="types"), "')'"], "tuple"),
     ])
-    grammar.add_symbol("cls", [
-        Rule(["'class'", S("ID", cond=True, var="ID"), S("parent", cond=True, var="parent"), "':'", Var("block")]),
+    grammar.add_symbol("type_def", [
+        Rule(["'type'", S("id", cond=True, var="id"), S("base", cond=True, var="base"), "':'", Var("block")]),
     ])
-    grammar.add_symbol("parent", [
-        Rule(["'('", Var("type"), "')'"]),
+    grammar.add_symbol("base", [
+        Rule(["'('", Var("type_ref"), "')'"]),
     ])
     grammar.add_symbol("decl", [
-        Rule([Var("ID"), S("decl_type", cond=True, var="type")]),
+        Rule([Var("id"), S("decl_type", cond=True, var="type_ref")]),
         # Rule(["'('", S("decl", list=List(delim="','"), var="declares"), "')'"], "tuple"),
     ])
     grammar.add_symbol("decl_type", [
-        Rule(["':'", Var("type")]),
+        Rule(["':'", Var("type_ref")]),
     ])
-    grammar.add_symbol("func", [
-        Rule(["'func'", S("ID", cond=True, var="ID"), "'('", S("func_arg", list=List(delim="','"), cond=True, var="args"), "')'", S("return_type", cond=True, var="return_type"), "':'", Var("block")]),
+    grammar.add_symbol("func_def", [
+        Rule(["'func'", S("id", cond=True, var="id"), "'('", S("func_arg", list=List(delim="','"), cond=True, var="args"), "')'", S("return_type", cond=True, var="return_type"), "':'", Var("block")]),
     ])
     grammar.add_symbol("func_arg", [
-        Rule([S("pack", cond=True, var="pack"), Var("decl"), S("init", cond=True, var="init")]),
+        Rule([S("pack", cond=True, var="pack"), S("'macro'", cond=True, var="macro"), Var("decl"), S("init", cond=True, var="init")]),
     ])
     grammar.add_symbol("return_type", [
-        Rule(["ARROW", Var("type")]),
+        Rule(["ARROW", Var("type_ref")]),
+    ])
+    grammar.add_symbol("arrow_func", [
+        Rule(["'('", S("func_arg", list=List(delim="','"), cond=True, var="args"), "')'", "ARROW", Var("expr")]),
+        Rule([Var("id"), "ARROW", Var("expr")], "single"),
     ])
     grammar.add_symbol("range", [
         Rule([S("expr", var="min"), "ELLIPSIS", S("expr", var="max")]),
@@ -162,7 +166,7 @@ def twocode_grammar():
     ])
     grammar.add_symbol("call_arg", [
         Rule([Var("expr")], "expr"),
-        Rule([Var("ID"), "'='", Var("expr")], "named"),
+        Rule([Var("id"), "'='", Var("expr")], "named"),
         Rule([Var("pack"), Var("expr")], "unpacked"),
     ])
     grammar.add_symbol("pack", [
@@ -195,15 +199,16 @@ def twocode_grammar():
         Rule([S("expr", var="expr1"), "'in'", S("expr", var="expr2")], "in"),
         Rule([S("expr", var="expr1"), "'not'", "'in'", S("expr", var="expr2")], "not_in"),
 
-        Rule([S("block_list", var="block")], "block"),
+        # Rule([S("block_list", var="block")], "block"),
         Rule([Var("if_chain")], "if"),
         Rule([Var("try_chain")], "try"),
         Rule([Var("for_loop")], "for"),
         Rule([Var("while_loop")], "while"),
         Rule([Var("in_block")], "in_block"),
 
-        Rule([Var("func")], "func"),
-        Rule([Var("cls")], "class"),
+        Rule([Var("func_def")], "func"),
+        Rule([Var("type_def")], "type"),
+        Rule([S("arrow_func", var="arrow")], "arrow"),
 
         Rule([Var("range")], "range"),
         Rule(["ELLIPSIS"], "ellipsis"),
@@ -219,8 +224,8 @@ def twocode_grammar():
         Rule([S("expr", var="key"), "':'", S("expr", var="value")]),
     ])
     grammar.add_symbol("term", [
-        Rule([Var("ID")], "ID"),
-        Rule([Var("term"), "'.'", Var("ID")], "access"),
+        Rule([Var("id")], "id"),
+        Rule([Var("term"), "'.'", Var("id")], "access"),
         Rule([Var("term"), "'['", S("tuple", cond=True, var="tuple"), "']'"], "index"),
 
         Rule([S("LITERAL", var="literal")], "literal"),
@@ -236,7 +241,50 @@ def twocode_grammar():
 
 # stmt_trailing_ws
 
-# var rename?
+from twocode.parse.Precedence import loops, form_prec as P, gen_valid_prec
+
+def twocode_prec(rules):
+    rules = loops(rules)
+
+    prec = [
+        *[P("_MATH", ops=layer.strip()) for layer in '''
+            %
+            * /
+            + -
+            << >>
+            &
+            ^
+            |
+        '''.strip().splitlines()],
+        # P("_MATH"),
+
+        #P("_ASSIGN"),
+        # P("assignment_list"), # currently the operators are in an inner rule, making 8 and 10 meet on the same layer
+        #P('='),
+
+        P("'in'"),
+
+        P("'func'"),
+        P("'macro'"),
+        P("'@'"),
+    ]
+    return gen_valid_prec(rules, prec)
+
+    # right only applies to symmetric
+    # why _MATH ?
+
+    rule_map.update((gen_prec(rules, prec, [
+        "_COMPARE in",
+        "slice",
+        "not",
+        "and"
+        "or",
+    ])))
+    # unary right
+    # assign, \n if right
+
+    return valid_op_prec(rules, rule_map, [])
+
 
 from twocode.utils.Nodes import node_gen as node_gen_f
 def node_gen(node_types, name, vars):
@@ -263,20 +311,20 @@ def transform_blocks(input_types):
     type_map["code_trail"] = lambda node: node.code
     type_map["block"] = lambda node: node.block
     type_map["block_single"] = lambda node: code([node.stmt])
-    type_map["block_list"] = lambda node: node.block
+    type_map["block_list"] = lambda node: node.block if node.block else code()
     type_map["block_list_inline"] = lambda node: node.block if node.block else code()
     return node_types, map(leave=switch(type_map, key=lambda node: type(node).__name__))
 
 def transform_args(input_types):
     node_types, type_map = regen_types(input_types)
-    func_arg = node_gen(node_types, "func_arg", [Var("ID"), Var("type", type="type"), Var("value", type="expr"), Var("pack")])
-    call_arg = node_gen(node_types, "call_arg", [Var("value", type="expr"), Var("ID"), Var("pack")])
+    func_arg = node_gen(node_types, "func_arg", [Var("id"), Var("type_ref", type="type_ref"), Var("value", type="expr"), Var("pack"), Var("macro")])
+    call_arg = node_gen(node_types, "call_arg", [Var("value", type="expr"), Var("id"), Var("pack")])
     '''
-        decl = node_gen([Var("ID"), Var("type", type="type")])
+        decl = node_gen([Var("id"), Var("type", type="type")])
         # decl_type
 
         grammar.add_symbol("decl", [
-            Rule([Var("ID"), S("decl_type", cond=True, var="type")]),
+            Rule([Var("id"), S("decl_type", cond=True, var="type")]),
             # Rule(["'('", S("decl", list=List(delim="','"), var="declares"), "')'"], "tuple"),
         ])
     '''
@@ -295,29 +343,33 @@ def transform_args(input_types):
         if type_name == "pack_kwargs":
             return "kwargs"
     type_map["func_arg"] = lambda node: func_arg(
-        node.decl.ID,
-        node.decl.type.type if node.decl.type else None,
+        node.decl.id,
+        node.decl.type_ref.type_ref if node.decl.type_ref else None,
         node.init.expr if node.init else None,
-        pack_mode(node.pack)
+        pack_mode(node.pack),
+        bool(node.macro),
     )
     type_map["call_arg_expr"] = lambda node: call_arg(node.expr)
-    type_map["call_arg_named"] = lambda node: call_arg(node.expr, ID=node.ID)
+    type_map["call_arg_named"] = lambda node: call_arg(node.expr, id=node.id)
     type_map["call_arg_unpacked"] = lambda node: call_arg(node.expr, pack=pack_mode(node.pack))
     type_map["term_call"] = lambda node: node_types["term_call"](node.term, node.args if node.args else node_types["args"]())
     return node_types, map(leave=switch(type_map, key=lambda node: type(node).__name__))
 
 def transform_func(input_types):
     node_types, type_map = regen_types(input_types)
-    func = node_gen(node_types, "func", [Var("ID"), Var("args", type="func_arg", list=True), Var("return_type", type="type"), Var("block", type="block")])
+    func_def = node_gen(node_types, "func_def", [Var("id"), Var("args", type="func_arg", list=True), Var("return_type", type="type_ref"), Var("block", type="block")])
 
-    type_map["func"] = lambda node: func(node.ID, node.args, node.return_type.type if node.return_type else None, node.block)
+    type_map["func_def"] = lambda node: func_def(node.id, node.args, node.return_type.type_ref if node.return_type else None, node.block)
+    type_map["arrow_func"] = lambda node: func_def(None, node.args, None, node_types["code"]([node_types["stmt_return"](node_types["tuple"]([node.expr]))]))
+    type_map["arrow_func_single"] = lambda node: func_def(None, [node_types["func_arg"](node.id)], None, node_types["code"]([node_types["stmt_return"](node_types["tuple"]([node.expr]))]))
+    type_map["expr_arrow"] = lambda node: node_types["expr_func"](node.arrow)
     return node_types, map(leave=switch(type_map, key=lambda node: type(node).__name__))
 
-def transform_class(input_types):
+def transform_type(input_types):
     node_types, type_map = regen_types(input_types)
-    cls = node_gen(node_types, "cls", [Var("ID"), Var("parent", type="type"), Var("block", type="block")])
+    type_def = node_gen(node_types, "type_def", [Var("id"), Var("base", type="type_ref"), Var("block", type="block")])
 
-    type_map["cls"] = lambda node: cls(node.ID, node.parent.type if node.parent else None, node.block)
+    type_map["type_def"] = lambda node: type_def(node.id, node.base.type_ref if node.base else None, node.block)
     return node_types, map(leave=switch(type_map, key=lambda node: type(node).__name__))
 
 def transform_math(input_types):
@@ -387,14 +439,14 @@ def transform_import(input_types):
     node_types, type_map = regen_types(input_types)
     imp = node_gen(node_types, "imp", [Var("imports", type="path", list=True), Var("module", list=True)])
     path = node_gen(node_types, "path", [Var("path", list=True), Var("name")])
-    for node_type in "imp_from path_name path_list path_item_ID path_item_all".split():
+    for node_type in "imp_from path_name path_list path_item_id path_item_all".split():
         del node_types[node_type]
 
     type_map["imp"] = lambda node: imp(node.imports)
     type_map["imp_from"] = lambda node: imp(node.imports, node.path.path)
     type_map["path"] = lambda node: path(node.path_list.path)
-    type_map["path_name"] = lambda node: path(node.path_list.path, node.ID)
-    type_map["path_item_ID"] = lambda node: node.ID
+    type_map["path_name"] = lambda node: path(node.path_list.path, node.id)
+    type_map["path_item_id"] = lambda node: node.id
     type_map["path_item_all"] = lambda node: "*"
     return node_types, map(leave=switch(type_map, key=lambda node: type(node).__name__))
 
@@ -420,73 +472,25 @@ def map_literals(context):
     def map_literal(node):
         if pattern.match(node.value):
             return literal(node.value, "integer")
-        if node.type == "string":
+        if node.lit_type == "string":
             node.value = codec(node.value[1:-1])[0]
+        if node.lit_type == "longstring":
+            node.lit_type = "string"
+            node.value = codec(node.value[3:-3])[0]
         return node
     type_map = {}
     type_map["literal"] = map_literal
     return map(leave=switch(type_map, key=lambda node: type(node).__name__))
 
-def map_op_prec(context):
-    # UNARY FROM RIGHT
-    # all from left
-
-    # compares, in
-    # slice
-    # not
-    # and
-    # or
-    # if a: b else c FROM RIGHT
-    # assigns FROM RIGHT
-
-    node_types = context.node_types
-    op_types = "expr_math expr_compare expr_unary expr_in expr_not expr_bool".split()
-
-    prec = [
-        "%",
-        "*/",
-        "+-",
-        "<< >>",
-        "&",
-        "^",
-        "|",
-    ]
-
-
-
-    # layer_ops, node_type, assoc
-    # assoc, op+type list
-    def sort_ops(node):
-        exprs, ops = list_terms(node)
-        for layer in prec:
-            layer_ops = layer.split()
-            indices = [i for i, op in enumerate(ops) if op in layer_ops]
-            matches = [node_types["expr_math"](exprs[index], ops[index], exprs[index + 1]) for index in indices]
-
-
-
-    def list_terms(node):
-        if type(node).__name__ not in math_types:
-            return [node], []
-        exprs1, ops1 = list_terms(node.expr1)
-        exprs2, ops2 = list_terms(node.expr2)
-        return exprs1 + exprs2, ops1 + [node.op] + ops2
-
-    type_map = {}
-    for type_name in math_types:
-        type_map[type_name] = sort_ops
-    return map(enter=switch(type_map, key=lambda node: type(node).__name__))
-
 class Parser(ParserContext):
     def __init__(self):
         super().__init__(twocode_lexer(), twocode_grammar())
-        # self.parser = IndentParser(self.rules)
 
         node_types = self.node_types
         node_types, t_blocks = transform_blocks(node_types)
         node_types, t_args = transform_args(node_types)
         node_types, t_func = transform_func(node_types)
-        node_types, t_class = transform_class(node_types)
+        node_types, t_type = transform_type(node_types)
         node_types, t_math = transform_math(node_types)
         node_types, t_bool = transform_bool(node_types)
         node_types, t_tuple = transform_tuple(node_types)
@@ -502,7 +506,7 @@ class Parser(ParserContext):
             t_blocks,
             t_args,
             t_func,
-            t_class,
+            t_type,
             t_math,
             t_bool,
             t_tuple,
@@ -512,6 +516,21 @@ class Parser(ParserContext):
             m_literals,
         ]
 
+        parser = IndentParser()
+        from twocode.parse.Parser import IncrementalParser
+        parser.parser = IncrementalParser(self.rules)
+        from twocode.parse.IndentParser import gen_valid, gen_insert
+        parser.valid = gen_valid(twocode_prec(self.rules))
+        parser.wrap_code, parser.insert = gen_insert(self.rules)
+        self.parser = parser
+
+
+
+    #def parse(self, code):
+    #    self.parser.parse(self.lexer.parse(code))
+    #    ast = self.parser.match()
+    #    return ast
+
 # import command inside
 
 class Twocode:
@@ -520,35 +539,34 @@ class Twocode:
         self.parse = self.parser.parse
         self.node_types = self.parser.node_types
 
+        from twocode.Context import add_context
         add_context(self)
 
-        from twocode.context.BuiltIns import gen_builtins
-        self.builtins = gen_builtins(self)
+        import twocode.Utils
+        self.builtins = twocode.Utils.Object()
+        from twocode.context.Objects import add_objects
+        add_objects(self)
+        from twocode.context.BasicTypes import add_types
+        add_types(self) # to builtins
+        from twocode.context.Objects import sign_objects
+        sign_objects(self)
+        from twocode.context.Scope import add_scope
+        add_scope(self)
+        from twocode.context.BuiltIns import add_builtins
+        add_builtins(self)
+        from twocode.context.NodeTypes import add_node_types
+        add_node_types(self)
+
         self.stack.insert(0, self.builtins)
 
-        from twocode.context.BasicTypes import gen_types
-        gen_types(self) # to builtins
-
-        from twocode.context.Typing import gen_typing
-        gen_typing(self)
-
-        from twocode.context.NodeTypes import gen_node_types
-        node_types = gen_node_types(self, self.node_types)
-        self.builtins.NodeTypes = node_types
-
-        from twocode.context.Objects import bind_context, objects
-        bind_context(self)
-        for obj in objects:
-            self.builtins[obj.__name__] = obj.__type__
-
-        from twocode.context.Modules import gen_modules
-        gen_modules(self)
-
-        self.sources = []
-    def load(self, path):
-        if os.path.isfile(path):
-            ast = self.parse(open(path, encoding="utf-8").read())
-            self.eval(ast)
+        from twocode.context.Typing import add_typing
+        add_typing(self)
+    def shell_repr(self, obj):
+        if hasattr(obj, "__this__") and obj.__this__ is None:
+            obj = None
+        else:
+            obj = self.unwrap_value(self.builtins.repr.native(obj))
+        return obj
 
 import twocode.utils.Code
 class Console(ConsoleBase):
@@ -561,14 +579,9 @@ class Console(ConsoleBase):
         ast = self.compile(code)
         if ast is None:
             return True
-        obj = self.eval(code)
+        obj = self.twocode.eval(ast)
         if self.shell:
-            if hasattr(obj, "__dict__"):
-                if "__this__" in obj.__dict__ and obj.__dict__["__this__"] is None:
-                    obj = None
-                else:
-                    obj = self.twocode.call(self.twocode.builtins.repr, ([obj], {}))
-                    obj = self.twocode.unwrap_value(obj)
+            obj = self.twocode.shell_repr(obj)
             if obj is not None:
                 print(obj, file=sys.stderr, flush=True)
         return False
@@ -591,26 +604,18 @@ def main():
 if __name__ == "__main__":
     console = Console()
     context = console.twocode
-    codebase = os.path.join(os.path.dirname(os.path.dirname(__file__)), "code")
-    context.sources.append(codebase)
 
-    tokens = context.parser.lexer.parse(open(os.path.join(codebase, "string/parser/Lexer.2c")).read())
-    # for token in tokens:
-    #     print(token)
 
-    # console.twocode.log_mode().__enter__()
     #console.twocode.eval(console.twocode.load("code/data/Node.2c"))
     #console.twocode.eval(console.twocode.load("code/parser/Lexer.2c"))
 
     # console.twocode.eval(console.twocode.load("code/parser/Lexer.2c"))
-
+    # console.twocode.log_mode().__enter__()
     console.interact()
     #from languages.twocode.targets.Python import translate
     #print(translate(ast))
 
 # is block a stmt? if so remove chains
-
-# ;;;
 
 "var a:C"
 "var a:C<T>"
@@ -628,13 +633,6 @@ if __name__ == "__main__":
 
 # string format
 
-
-
-
-# that class' fields (meta) have correct types
-
-
-# native signature
 # explicit types
 
 
@@ -646,59 +644,278 @@ if __name__ == "__main__":
 
 # 0.2
 
-# [[[[[[
-# import
-# github
-# blog post
-# fix
-# scope
-# static, getattr
-# ]]]]]]]
 
 
 
+
+
+
+# type checking, conversions
+
+# precedence
+# rich operators
 
 # .tuple.expr rm
 # sort new twocode thing, rm load cmd
-# modules
-# conversion to runtime
-
-
-# native prints
-
 
 # eval takes envs
 # scope_stack[-1]
 
-# retype on redeclare
-# check on assignment, but treat it as what it is
-# default
-# nullable
+
 
 # ast map
 
-
-
-# type not evaluating
-# class with no defaults? needs slots too!
-# does a class have a name?
-
-
-
-
 # : {} works but : { } does not
 
-# getter property
-# intiterator
 
-# regex, Data, cpp, char[]
-# Bytes... ByteList?
 
 # <T> params, keys/values iterator, set from iterator
 
 
 #  print from within, edit, to cpp, print cpp
 
+# all reprs should print macro also
+
 #(1,) ()
 
-# decorators don't know if it's supposed to have a self
+# format.args[0].name = "this"
+
+# with -> in
+# in enter exit
+# in __scope__ if macro, gets the block
+# in A: @cls var x = 2 (
+# longstring inelegant
+
+# regex, bytes in cpp
+
+# immutable type, immutable object (not immutable but compiled) - native
+
+
+# @include("re")
+# cancel import if errors?
+# hide inside class
+# skip empty lines
+
+
+# test for current macro bullshit
+# test blocky
+    # - errors
+
+
+
+
+# sign all custom methods
+# __new__
+
+
+# term expr
+# a ast wrapper AST Stack CodeStack
+#
+
+# [ ] scopes
+# [ ] static, getters
+# [ ] typing
+# [ ] extra syntax
+
+# comments
+
+
+# haxe - regex
+# simple tests
+# a class-abstract split
+# generated classes with fake children
+
+#@id("loop") {
+#}
+
+# distribute native objects into fake packages
+# -> comprehensions
+
+# that class' fields (meta) have correct types
+# static, getattr
+# static - runtime interrupt
+# package memory
+# iterator - Intrange, fix, etc
+# intiterator
+# type not evaluating
+# getter property
+
+# .lang / .platform thing, the correct native imported as a fake module
+# list uses the native
+
+# native.
+# code.native
+# code.lang.native?
+# .Lang
+# twocode
+
+# classes not remembered, methods not passed
+
+# with is about stacking contexts, not about snatching the scope
+# with EXPR: BLOCK
+
+# stmt_list - try as {} or feed it parse from a file
+
+# var a
+# import from
+# modules - import as, full_path
+# fix prints
+# Regex
+# tuples
+
+# fake modules - use the fact that they are alone, completely replace them
+
+
+# finish scope
+# __root__ - multiple values? or the dict?
+# plugin types
+# cover signatures
+# tests
+# fix indentparser
+
+# class's slots typed?
+
+# does the classic a() or b() work here?
+
+# create partial cast
+
+'''
+a func that returns a type object
+Func<a,b> reads as a->b
+<> is just syntax to create an internal field __params__
+    a weird scope visible for types of the class
+    original - compatible, have to be types
+func has none and is on request
+'''
+
+# in code.node_types would shorten the paths? or can i do a shady import like this?
+
+'''
+code.node_types
+code.objects.Type
+code.scope.Module
+
+code.builtins
+code.basic_types
+'''
+
+# module.copy()
+
+# v3 - compiles, tests
+
+
+# clear major stuff - context modules.
+
+# possibly prec could be finished
+
+
+
+# v4
+# profile and fit types
+# fake natives and paths of intrange
+
+# super. __expr__ raises exc, returns a special term - accesses base type of current object
+# Type.a(obj) also possible
+
+
+
+# skip tuple? wouldnt it be nicer as OOP, if the expr->func step was skipped?
+
+# another part of profiling is having everything reflected properly
+
+# classes
+
+# class.a = class.__fields__
+# static access HOW?
+
+
+
+# from _ import *
+# also in
+# module
+
+# exc as string
+
+
+
+
+# indentparser
+# expr_func term still not fixed
+
+# a.code
+# a.__type__
+# of func
+
+# class getattr
+# smells like internals -> getter
+# func native
+# null typing
+
+
+# solve the obj case
+# type_path
+# add modules
+# ip errors
+# remove pack errors
+
+# func type resolve fails on sources but name ref does not?
+# cant even print types of nodes
+
+# func access from class and getattr
+    # printing a class should jump to its type. having type.__repr__ breaks this
+# besides, inheritance! does access to a true value not depend on the slot it is in?
+
+    # all references of uses, except super, refer to the top level of the class
+    # we assume it is in a legal slot
+    # raise exc if the call would be illegal for the slot
+
+    # the base value type tossed around complex should be (value, type)
+
+'''
+C:\Python35\python.exe H:/Twocode/twocode/Twocode.py
+>>> func f(n): return if n == 1: 1 else: n * f(n - 1)
+null
+>>> f
+Traceback (most recent call last):
+
+    tree = map[val](tree)
+  File "H:\Twocode\twocode\Context.py", line 442, in term_id
+    raise NameError("name {} is not defined".format(repr(id)))
+NameError: name 'f' is not defined
+>>> func f():{}
+func(): {}
+>>> f
+func(): {}
+>>> func f(n): {return if n == 1: 1 else n * f(n - 1)}
+Traceback (most recent call last):
+  File "H:/Twocode/twocode/Twocode.py", line 577, in <lambda>
+    self.compile = lambda code: self.twocode.parse(code)
+  File "H:\Twocode\twocode\parse\Context.py", line 20, in parse
+    ast = self.parser.match()
+  File "H:\Twocode\twocode\parse\IndentParser.py", line 47, in match
+    raise Exception("\n".join([""] + [str(error) for error in self.errors]))
+Exception:
+can't parse <stmt> at: 'func' WS id("f") '(' id("n") ')' ':' WS '{' 'return' WS 'if' WS id("n") WS COMPARE("==") WS LITERAL_float("1") ':' WS LITERAL_float("1") WS 'else' WS id("n")
+>>> func f(n): {return if n == 1: 1 else: n * f(n - 1)}
+null
+>>> f
+func(): {}
+>>> f(2)
+Traceback (most recent call last):
+
+    tree = map[val](tree)
+  File "H:\Twocode\twocode\Context.py", line 472, in term_call
+    scope = context.unpack_args(func, args)
+  File "H:\Twocode\twocode\Context.py", line 99, in unpack_args
+    raise SyntaxError("signature mismatch while unpacking arguments")
+  File "<string>", line None
+SyntaxError: signature mismatch while unpacking arguments
+>>> f()
+Traceback (most recent call last):
+
+    tree = map[val](tree)
+  File "H:\Twocode\twocode\Context.py", line 511, in expr_term
+    type = obj.__type__
+AttributeError: 'NoneType' object has no attribute '__type__'
+>>>
+'''

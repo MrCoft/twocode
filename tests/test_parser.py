@@ -1,33 +1,52 @@
 from twocode.Tests import *
 
 name_tests(
-    keyword_id=parses("ify", "ID".split()),
-    keyword_end=parses("if", "'if'".split()),
-
-    a=fails(raw=''' # dedent
-        if true:
-            \t1
+    # lexer
+    # - regex edge cases
+    # - raw have no data
+    keyword_id=parses("ify", 'id("ify")'),
+    keyword_end=parses("if", "'if'"),
+    ws=parses(raw="  ", result="WS"),
+    raw_repr=parses("var a = 2", ''''var' WS id("a") WS '=' WS LITERAL_integer("2")'''),
+    # literals
+    int=parses("1", 'LITERAL_integer("1")'),
+    float=parses(".5", 'LITERAL_float(".5")'),
+    bool=parses("true", 'LITERAL_boolean("true")'),
+    string_double=cmp('"abc"'),
+    string_single=cmp("'abc'", '"abc"'),
+    string_escape=cmp('"a\\nb"'),
+    string_multiline=cmp("'''a\nb'''", '"a\\nb"'),
+    # lists and tuples
+    list=cmp("[1, 2]"),
+    list_single=cmp("[1]"),
+    list_empty=cmp("[]"),
+    tuple=cmp("(1, 2)"),
+    tuple_single=cmp("(1,)"),
+    tuple_empty=cmp("()"),
+    parens=cmp("(1)"),
+    # indent parser
+    # - indent block does not end the line with a space
+    # - support tabs and spaces
+    indent_enter=cmp("if true:\n\t1\n\t2"),
+    indent_tabs=cmp(raw="if true:\n\t1\n\t2", result="if true:\n\t1\n\t2".replace("\t", " " * 4)),
+    indent_align=compiles('''
+        a = [
+                0,
+            1 + 2,
+        ]
     '''),
-
-    int=auto_cmp("1"),
-    bool=auto_cmp("true"),
-    string=auto_cmp('"abc"'),
-    list=auto_cmp("[1, 2]"),
-    list_single=auto_cmp("[1]"),
-    list_empty=auto_cmp("[]"),
-
-    tuple=auto_cmp("(1, 2)"),
-    tuple_single=auto_cmp("(1,)"),
-    tuple_empty=auto_cmp("()"),
-    parens=auto_cmp("(1)"),
+    indent_order=fails(raw="[\n{}1,\n]".format(" " * 4 + "\t")),
+    indent_consistent=fails(raw="if true:\n{}1\nif false:\n{}2".format(" " * 4, "\t")),
+    indent_mixed=fails(raw="if true:\n\t1\n\t2".replace("\t", " " * 4 + "\t")),
+    indent_odd=fails(raw="if true:\n\t1\n\t2".replace("\t", " " * 5)),
 
 
 
-    math=auto_cmp("1 + 2"),
-    unary=auto_cmp("-1"),
+    # exprs
+    math=cmp("1 + 2"),
+    unary=cmp("-1"),
+    code=cmp("{}"),
 
-    code=auto_cmp("{}"),
-    ws=parses(raw="  ", result="WS".split()),
 
     multiline_expr=cmp('''
         a +
@@ -44,11 +63,47 @@ name_tests(
 
         \t\t
         \t2
-    ''', result="'if' WS LITERAL_boolean ':' EOL ENTER LITERAL_float EOL EOL EOL LITERAL_float LEAVE".split()),
-    literal_int=parses("2", "LITERAL_int".split()),
-    line_ext=parses("[\\\n]", "'[' ']'".split()),
-)
+    ''', result=''''if' WS LITERAL_boolean("true") ':' EOL ENTER("    ") LITERAL_integer("1") EOL EOL EOL LITERAL_integer("2") LEAVE'''),
+    line_ext=parses("[\\\n]", "'[' ']'"),
 
+    lines_cont=cmp("1 +\n2", "1 + 2"),
+    lines_split=cmp("1\n+ 2", "1\n2"),
+
+)
+# unexpected indent
 # test - leave to negative indent
 # test - } global error
-# exactly one parse for 'if true:\n    1\n    2'
+#    indent_sane=fails("if true:\n\t\t1\n\t2", "IndentationError: indent not sane"),
+
+
+# ;;;
+# func():{1;2;}
+# {1;}
+
+# expr_block, valid and invalid
+
+
+
+
+
+
+
+
+# all of these to some eval as well
+'''
+if 0:
+    var x = 3
+    for a in b: 0
+    print(0)
+l = [0, 1]
+
+that invalid statements are erased, it does not form a single stmt
+everyone - that there is 1 parse
+iftrue:
+    1
+
+that a failed stmt does not just insert the contents, or that it makes the next stmt fail
+
+null prints nothing
+
+'''

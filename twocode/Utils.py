@@ -1,11 +1,16 @@
 import sys
 import io
 import inspect
+import re
+import itertools
+import random
 
 class Object(dict):
     def __init__(self, **kwargs):
         dict.__init__(self, kwargs)
         self.__dict__ = self
+    def __hash__(self):
+        return id(self)
     def __getstate__(self):
         return self
     def __setstate__(self, state):
@@ -63,8 +68,8 @@ def gen_cond(gen, cond=None):
     while not val or not cond(val):
         val = gen()
     return val
-def hex_id(n=64, cond=None):
-    return gen_cond(lambda: hex(n), conds(lambda id: not id.startswith(tuple("0123456789")), cond))
+def hex(n=64, cond=None):
+    return gen_cond(lambda: format(random.getrandbits(n), "x"), conds(lambda id: not id.startswith(tuple("0123456789")), cond))
 
 def free_var(var, scope):
     free_var = var
@@ -90,6 +95,11 @@ def redict(d, remove=None, add=None):
     if add:
         d = {key: d[key] for key in add if key in d}
     return d
+
+def flatten(iter, depth=1):
+    for i in range(depth):
+        iter = itertools.chain.from_iterable(iter)
+    return list(iter)
 
 def to_pairs(dict):
     return [(key, value) for key, value in dict.items()]
@@ -207,3 +217,8 @@ class FlushStream:
         return len
     def flush(self):
         self.stream.flush()
+
+
+
+def leading_ws(line):
+    return re.match(r"\s*", line).group()
