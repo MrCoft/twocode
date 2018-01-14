@@ -4,6 +4,7 @@ import inspect
 import re
 import itertools
 import random
+import os
 
 class Object(dict):
     def __init__(self, **kwargs):
@@ -17,9 +18,10 @@ class Object(dict):
         self.update(state)
         self.__dict__ = self
 
-    def args_pass(self):
+    def pass_args(self, remove=None):
+        if remove is None: remove = []
         frame, filename, lineno, function, code_context, index = inspect.stack(0)[1]
-        scope = redict(dict(frame.f_locals), ["__class__", "self"])
+        scope = redict(dict(frame.f_locals), ["__class__", "self"] + remove)
         self.update(scope)
 
 class Context:
@@ -27,19 +29,21 @@ class Context:
         pass
     def __enter__(self):
         return self
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exc_type, exc, tb):
         pass
     def __call__(self):
         self.__enter__()
+    def __invert__(self):
+        return reverse_context(self)
 class contexts(Context):
     def __init__(self, *contexts):
         self.contexts = list(contexts)
     def __enter__(self):
         for context in self.contexts:
             context.__enter__()
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exc_type, exc, tb):
         for context in reversed(self.contexts):
-            context.__exit__(type, value, traceback)
+            context.__exit__(exc_type, exc, tb)
 class cond_context(Context):
     def __init__(self, cond, context=None, else_context=None):
         self.cond = cond
@@ -55,9 +59,52 @@ class cond_context(Context):
             if self.else_context:
                 self.else_context.__enter__()
                 self.leave = self.else_context.__exit__
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exc_type, exc, tb):
         if self.leave:
-            self.leave(type, value, traceback)
+            self.leave(exc_type, exc, tb)
+class reverse_context(Context):
+    def __init__(self, context):
+        self.context = context
+    def __enter__(self):
+        self.context.__exit__(None, None, None)
+    def __exit__(self, exc_type, exc, tb):
+        self.context.__enter__()
+
+class Streams(Context):
+    def __init__(self, stdin=None, stdout=None, stderr=None):
+        self.stdin  = stdin
+        self.stdout = stdout
+        self.stderr = stderr
+    def __enter__(self):
+        self.old_stdin  = sys.stdin
+        self.old_stdout = sys.stdout
+        self.old_stderr = sys.stderr
+        if self.stdin:	sys.stdin  = self.stdin
+        if self.stdout:	sys.stdout = self.stdout
+        if self.stderr:	sys.stderr = self.stderr
+    def __exit__(self, exc_type, exc, tb):
+        sys.stdin  = self.old_stdin
+        sys.stdout = self.old_stdout
+        sys.stderr = self.old_stderr
+def streams_object(streams):
+    if streams:
+        return Streams(
+            streams.stdin,
+            streams.stdout,
+            streams.stderr
+        )
+    else:
+        return Streams(
+            ContentStream(),
+            ContentStream(),
+            ContentStream()
+        )
+def wrap_streams(streams, type):
+    return Streams(
+        type(streams.stdin),
+        type(streams.stdout),
+        type(streams.stderr),
+    )
 
 def conds(*conds):
     return lambda *args, **kwargs: all(cond(*args, **kwargs) for cond in conds if cond)
@@ -120,6 +167,35 @@ def invert_dict(dict, sort=None):
 
 
 
+def case_path(path, dir=None):
+    if dir is None: dir = os.getcwd()
+    path = os.path.normpath(path)
+    path = path.split(os.sep)
+    for name in path[:-1]:
+        files = os.listdir(dir)
+        if name in files:
+            dir = os.path.join(dir, name)
+        else:
+            dir = None
+            break
+    if not dir:
+        return
+    name = path[-1]
+    files = os.listdir(dir)
+    files = [file for file in files if file.lower() == name.lower()]
+    if not files:
+        return
+    if len(files) > 1:
+        raise FileNotFoundError("Found multiple {} files at {}:\n{}{}".format(
+            name, dir, " " * 4, " ".join(files)
+        ))
+    name, ext = os.path.splitext(name)
+    file = files[0]
+    if not file.startswith(name):
+        return
+    file = os.path.join(dir, file)
+    return file
+
 class Streams(Context):
     def __init__(self, stdin=None, stdout=None, stderr=None):
         self.stdin  = stdin
@@ -132,7 +208,7 @@ class Streams(Context):
         if self.stdin:	sys.stdin  = self.stdin
         if self.stdout:	sys.stdout = self.stdout
         if self.stderr:	sys.stderr = self.stderr
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exc_type, exc, tb):
         sys.stdin  = self.old_stdin
         sys.stdout = self.old_stdout
         sys.stderr = self.old_stderr

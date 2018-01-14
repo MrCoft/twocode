@@ -14,51 +14,44 @@ class Rule:
 class Grammar:
     def __init__(self):
         self.rules = []
+        self.ops = {}
         self.literals = {}
-        self.unfit = {}
     def form_rules(self):
         self.gen_names()
         prototype_rules = [copy.deepcopy(rule) for rule in self.rules]
-        self.add_symbol("WS", [
-            Grammar.Rule(pattern, allow_ws=False) for pattern in [
-                ["EOL"],
-                ["WS", "WS"],
-                ["ENTER"], ["LEAVE"],
-            ]
-        ])
-        self.unfit["WS"] = set()
         self.apply_list()
         self.apply_cond()
         self.apply_ws()
+        self.sub_ws()
         self.apply_cond()
-        self.apply_literals()
-        self.apply_unfit()
+        self.add_ops()
+        self.add_literals()
         rules = [Rule(rule.symbol, [symbol.name for symbol in rule.pattern]) for rule in self.rules]
         self.node_types, self.transform = self.gen_transform(prototype_rules, self.rules, rules)
         return rules
 
     def apply_ws(self):
-        '''
+        """
             modifies rules that have an allow_ws tag
-        '''
+        """
         S = Grammar.Symbol
         for rule in self.rules:
             if rule.allow_ws:
                 rule.allow_ws = False
                 for i in range(len(rule.pattern)):
-                    rule.pattern = rule.pattern[:2 * i] + [S("WS", cond=True)] + rule.pattern[2 * i:]
+                    rule.pattern = rule.pattern[:2 * i] + [S("WS", opt=True)] + rule.pattern[2 * i:]
                 rule.pattern = rule.pattern[1:]
     def apply_cond(self):
-        '''
+        """
             generates 2 ^ n rules from rules for each conditional symbol
-        '''
+        """
         result = []
         for rule in self.rules:
             indices = []
             cond_count = 0
             for index, symbol in enumerate(rule.pattern):
-                if symbol.cond:
-                    symbol.cond = False
+                if symbol.opt:
+                    symbol.opt = False
                     indices.append(index)
                     cond_count += 1
             for i in range(2 ** cond_count):
@@ -69,14 +62,14 @@ class Grammar:
                 result.append(res_rule)
         self.rules = result
     def apply_list(self):
-        '''
+        """
             converts rules with list(expr) symbols
-        '''
+        """
         S = Grammar.Symbol
         symbol_scope = set(rule.symbol for rule in self.rules)
         result = []
         for rule in self.rules:
-            for index, symbol in enumerate(rule.pattern):
+            for symbol in rule.pattern:
                 if symbol.list:
                     delim = symbol.list.delim
                     symbol.list = None
@@ -93,29 +86,35 @@ class Grammar:
                     self.rules.extend(rls)
                     symbol.name = list_symbol
         self.rules.extend(result)
-    def apply_literals(self):
+    def sub_ws(self):
+        self.add_symbol("WS", [
+            Grammar.Rule(pattern, allow_ws=False) for pattern in [
+                ["EOL"],
+                ["WS", "WS"],
+                ["ENTER"], ["LEAVE"],
+            ]
+        ])
+        for rule in self.rules:
+            if rule.symbol == "WS":
+                rule.symbol = "_WS"
+            for symbol in rule.pattern:
+                if symbol.name == "WS":
+                    symbol.name = "_WS"
+        self.add_symbol("_WS", [Grammar.Rule(["WS"])])
+    def add_ops(self):
+        """
+            Map<Tuple<K,V>> parsed '>>' as bit shift
+            build operators from characters in grammar
+        """
+        for symbol, group in self.ops.items():
+            for item in group:
+                rule = Grammar.Rule(["'" + char + "'" for char in item], symbol=symbol)
+                rule.tags.add("op")
+                self.rules.append(rule)
+    def add_literals(self):
         S = Grammar.Symbol
         rules = [Grammar.Rule([S("LITERAL_" + literal)], literal) for literal in self.literals.keys()]
         self.add_symbol("LITERAL", rules)
-    def apply_unfit(self):
-        '''
-            generalizes symbols with ambiguous meaning
-            renames them, creates single-step rules for them
-        '''
-        for rule in self.rules:
-            if rule.symbol in self.unfit:
-                rule.symbol = "_" + rule.symbol
-            for symbol in rule.pattern:
-                if symbol.name in self.unfit:
-                    symbol.name = "_" + symbol.name
-        for symbol, raws in self.unfit.items():
-            rule = Grammar.Rule([symbol], symbol="_" + symbol)
-            rule.tags.add("fallthrough")
-            self.rules.append(rule)
-            for sym in ["'{}'".format(raw) for raw in sorted(raws)]:
-                rule = Grammar.Rule([sym], symbol="_" + symbol)
-                rule.tags.add("unfit")
-                self.rules.append(rule)
 
     def gen_names(self):
         rule_scope = set()
@@ -127,23 +126,18 @@ class Grammar:
                 rule.name = rule_name[len(rule.symbol):]
             rule_scope.add(rule_name)
     def gen_transform(self, prototype_rules, rules, rule_copies):
-        '''
+        """
             solved design problems:
                 rules like <file> are almost placeholders, a reason for a fallthrough transformation
                     as creating a Node for them would cut the tree
                     but this then breaks a Return node which has no children
-        '''
+        """
         def node_gen(rule):
-            if "unfit" in rule.tags:
-                return None
             vars = []
             for symbol in rule.pattern:
                 if symbol.var:
                     var = Var(symbol.var)
                     var.type = symbol.name
-                    while var.type in fallthrough_type:
-                        var.type = fallthrough_type[var.type]
-                    # REASON: does nothing in current design, but it is important to be aware of the retyping
                     if var.type not in nonterminals:
                         var.type = None
                     var.list = bool(symbol.list)
@@ -154,14 +148,12 @@ class Grammar:
                 return None
             GenNode = twocode.utils.Nodes.node_gen(str(rule), vars)
             return GenNode
-        nonterminals = {rule.symbol for rule in prototype_rules if not "fallthrough" in rule.tags}
-        # REASON: fallthrough prototypes make the final tree unmappable
+        nonterminals = {rule.symbol for rule in prototype_rules}
         used_types = {symbol.name for rule in prototype_rules for symbol in rule.pattern if symbol.var}
         # REASON: discard types that won't be created
-        fallthrough_type = {rule.symbol: rule.pattern[0].name for rule in rules if "fallthrough" in rule.tags}
         copy_to_rule = {rule_copy: rule for rule, rule_copy in zip(rules, rule_copies)}
         node_types = {}
-        node_types["literal"] = twocode.utils.Nodes.node_gen("literal", [Var("value"), Var("lit_type")])
+        node_types["literal"] = twocode.utils.Nodes.node_gen("literal", [Var("value"), Var("type")])
         nonterminals.add("LITERAL")
         for rule in prototype_rules:
             node_type = node_gen(rule)
@@ -172,26 +164,15 @@ class Grammar:
                 if var.type == "LITERAL":
                     var.type = "literal"
 
-        def transform_fallthrough(rule):
-            '''
-                unwraps single-element prototypes
-            '''
-            if "fallthrough" in rule.tags:
-                return lambda node: node.children[0]
-            return lambda node: node
-        def transform_unfit(rule):
-            '''
-                raw tokens have no data to pretty-print as '+' and not '+'("+")
-                fit ops read as MATH("%"), but unfit ops disappear
-            '''
-            if "unfit" in rule.tags:
-                token = rule.pattern[0].name[1:-1]
-                return lambda node: Node(rule=None, token=token)
+        def transform_op(rule):
+            if "op" in rule.tags:
+                op = "".join(symbol.name[1:-1] for symbol in rule.pattern)
+                return lambda node: Node(rule=None, token=op)
             return lambda node: node
         def transform_terminals(node):
-            '''
+            """
                 unwraps raw tokens
-            '''
+            """
             return node.token
         def transform_literals(rule):
             node_type = node_types["literal"]
@@ -202,9 +183,9 @@ class Grammar:
                     return node_type(node.children[0], literal_type)
             return f
         def transform_list(rule):
-            '''
+            """
                 collapses list grammars to lists
-            '''
+            """
             f = lambda node: node
             if "list" in rule.tags:
                 if rule.name == "list_create":
@@ -230,21 +211,21 @@ class Grammar:
                 return node_type(**scope)
             return f
 
-        '''
+        """
             order matters, we group transformative functions as some create non-nodes
 
-            fallthrough, unfit - terminals don't appear in NodeTypes' children
+            ops - terminals don't appear in NodeTypes' children
 
             terminals - turns nodes into strings, can't be followed by switch
             list - turns nodes into lists, which only NodeTypes can handle
             type - requires transformed lists
-        '''
-        token_transform = map(leave=switch({rule: filter(transform_fallthrough(rule), transform_unfit(rule)) for rule in rules},
+        """
+        token_transform = map(leave=switch({rule: transform_op(rule) for rule in rules},
                                 lambda node: copy_to_rule.get(node.rule)))
         type_map = {rule: filter(transform_literals(rule), transform_list(rule), transform_type(rule)) for rule in rules}
         type_map[None] = transform_terminals
         type_transform = map(leave=switch(type_map, lambda node: copy_to_rule.get(node.rule)))
-        transform = lambda tree: type_transform(token_transform(tree))
+        transform = filter(token_transform, type_transform)
         return node_types, transform
 
     def add_symbol(self, symbol, rules):
@@ -263,10 +244,10 @@ class Grammar:
         def __str__(self):
             return self.symbol + "_" + self.name if self.name else self.symbol
     class Symbol:
-        def __init__(self, name, list=None, cond=False, var=None):
+        def __init__(self, name, list=None, opt=False, var=None):
             self.name = name
             self.var = var
-            self.cond = cond
+            self.opt = opt
             self.list = list
         Var = lambda name: Grammar.Symbol(name, var=name)
         class List:
@@ -309,7 +290,7 @@ def default_grammar():
         Rule([Var("id"), "'<'", S("type", var="template"), "'>'"], "template")
     ])
     grammar.add_symbol("func", [
-        Rule([Var("type"), Var("id"), "'('", S("decl", list=List(delim="','"), cond=True, var="arg_list"), "')'",
+        Rule([Var("type"), Var("id"), "'('", S("decl", list=List(delim="','"), opt=True, var="arg_list"), "')'",
               "ENTER", S("line", list=List(), var="code"), "LEAVE"])
     ])
     grammar.add_symbol("expr", [
@@ -323,11 +304,11 @@ def default_grammar():
     grammar.add_symbol("term", [
         Rule([Var("id")], "id"),
         Rule([S("LITERAL", var="literal")], "literal"),
-        Rule([Var("term"), "'('", S("expr", list=List(), cond=True, var="expr_list"), "')'"], "call"),
-        Rule([Var("term"), "'['", S("expr", list=List(), cond=True, var="expr_list"), "']'"], "index"),
+        Rule([Var("term"), "'('", S("expr", list=List(), opt=True, var="expr_list"), "')'"], "call"),
+        Rule([Var("term"), "'['", S("expr", list=List(), opt=True, var="expr_list"), "']'"], "index"),
         Rule([Var("term"), "'.'", Var("id")], "access"),
-        Rule(["'('", S("expr", list=List(), cond=True, var="expr"), "')'"], "parens"),
-        Rule(["'['", S("expr", list=List(), cond=True, var="expr_list"), "']'"], "array")
+        Rule(["'('", S("expr", list=List(), opt=True, var="expr"), "')'"], "parens"),
+        Rule(["'['", S("expr", list=List(), opt=True, var="expr_list"), "']'"], "array")
     ])
 
     return grammar
@@ -340,8 +321,8 @@ if __name__ == "__main__":
     lexer = lex_model.form_lexer()
 
     grammar = default_grammar()
+    grammar.ops = lex_lang.ops
     grammar.literals = lex_lang.literals
-    grammar.unfit = lex_lang.unfit
     rules = grammar.form_rules()
     for rule in rules:
         print(rule)

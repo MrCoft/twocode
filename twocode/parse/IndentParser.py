@@ -1,45 +1,25 @@
 from twocode.utils.Nodes import Node, range_call, l
-import sys
-import traceback
 import textwrap
+from twocode.utils.Code import format_exception_only
+
+stmt_symbol = "stmt"
+delims = ['EOL', "';'"]
+ws = "WS EOL ENTER LEAVE".split()
 
 class IndentParser:
-    '''
-        this is designed to solve several specific problems:
-
-        break code into scopes to isolate errors, even between statements
-
-        not all blocks are made of code:
-            a = [
-                1,
-            ]
-
-        statements can be multiline if they wouldn't parse otherwise
-        parse longest stmt, then find if it breaks into valid parts
-        (shortest stmt parse followed by a delim fails on if-else)
-            x = 1
-            + 2
-            y = 1 +
-              2; 3
-        stmts can be broken only if they are concatenated using math
-        in that case, an error and a reset would lead to the error again
-        so unintuitively, we do not reset the pointer
-
-        debatable cases:
-        subtree filter does not invalidate ws blocks
-        valid parses may be overwritten by longer invalid parses
-    '''
     def __init__(self):
         self.parser = None
-        self.valid = None
-        pass # other nones?
+        self.valids = []
+        self.wrap_code, self.insert = None, None
+    def validate(self, node):
+        for valid in self.valids:
+            valid(node)
     def parse(self, lexer):
-        buffer = list(lexer)
-        self.parser.init_search()
-        # REASON: breaks if inner parser becomes dirty
+        # REMOVED: breaks if inner parser becomes dirty
+        # self.parser.init_search()
         self.num_parses = 1
-        lines, self.errors = self.check(buffer)
-        self.matches = [self.wrap_code(lines)]
+        code, self.errors = self.check(list(lexer))
+        self.matches = [code]
     def match(self):
         if self.errors:
             raise Exception("\n".join([""] + [str(error) for error in self.errors]))
@@ -48,105 +28,16 @@ class IndentParser:
         if tree is None:
             tree = parse_block_tree(buffer)
 
-        stmt_symbol = "stmt"
-        delims = ['EOL', "';'"]
-        ws = "WS EOL ENTER LEAVE".split()
-
         all_matches = []
         all_errors = []
 
-        def pack_matches():
-            nonlocal matches, i
-
-            matches_re = []
-            msg = None
-            for match in matches:
-                try:
-                    self.valid(match)
-                    matches_re.append(match)
-                except:
-                    exc_class, exc, tb = sys.exc_info()
-                    msg = traceback.format_exception(exc_class, exc, None)
-                    msg = "".join(msg)
-            matches = matches_re
-            if not matches:
-                code = " ".join(str(buffer[j]) for j in skip_subs(match_pos, match_end if msg else i, subs))
-                if not msg:
-                    msg = Exception("can't parse <stmt>")
-                error = "{}at: {}".format(msg, code)
-                all_errors.append(error)
-                return
-
-            sub_pos = list(skip_subs(match_pos, match_end, subs))
-            sub_buffer = [buffer[j] for j in sub_pos]
-            sb_len = len(sub_buffer)
-
-            remain_match, remain_parses = matches[0], 1
-            pos = 0
-            matches = []
-            offsets = []
-            parser.init_search(stmt_symbol)
-            for i1 in range(sb_len):
-                parser.push(sub_buffer[i1])
-                if not (i1 + 1 >= sb_len or sub_buffer[i1 + 1] in delims):
-                    continue
-
-                matches1 = []
-                for match1 in parser.matches:
-                    try:
-                        self.valid(match1)
-                        matches1.append(match1)
-                    except:
-                        continue
-                if not matches1:
-                    continue
-
-                i2 = i1 + 2
-                while i2 < sb_len and sub_buffer[i2].type in ws:
-                    i2 += 1
-                parser2 = self.parser.copy()
-                parser2.init_search(stmt_symbol)
-                pos2 = i2
-                for i2 in range(i2, i1):
-                    parser2.push(sub_buffer[i2])
-
-                matches2 = []
-                for match2 in parser2.matches:
-                    try:
-                        self.valid(match2)
-                        matches2.append(match2)
-                    except:
-                        continue
-                for match2 in matches2:
-                    matches.append(match1)
-                    offsets.append(sub_pos[pos])
-                    self.num_parses *= len(matches1)
-                    pos = pos2
-                    remain_match, remain_parses = match2, len(matches2)
-                    parser.init_search(stmt_symbol)
-            matches.append(remain_match)
-            offsets.append(sub_pos[pos])
-            self.num_parses *= remain_parses
-            offsets.append(sub_pos[-1] + 2)
-
-            all_lines = []
-            for subtree in subs:
-                lines, errors = self.check(buffer, subtree)
-                all_lines.append(lines)
-                all_errors.extend(errors)
-
-            matches_re = []
-            for match, pos, end in zip(matches, offsets[:-1], offsets[1:]):
-                length = end - pos - 1
-                for subtree, lines in reversed(list(zip(subs, all_lines))):
-                    if pos <= subtree.pos - 1 and subtree.pos + subtree.length <= pos + length:
-                        offset = subtree.pos
-                        for subtree in reversed(subs):
-                            if offset > subtree.pos:
-                                offset -= subtree.length
-                        self.insert(match, offset - pos, lines)
-                matches_re.append(match)
-            all_matches.extend(matches_re)
+        parser = self.parser.copy()
+        i = tree.pos
+        tree_end = tree.pos + tree.length
+        def skip_ws():
+            nonlocal i
+            while i < tree_end and (buffer[i].type in ws or buffer[i].type in delims):
+                i += 1
 
         subtrees = tree.children
         subs = []
@@ -164,73 +55,181 @@ class IndentParser:
                 matches = parser.matches
                 match_end = i
 
-        def skip_ws():
-            nonlocal i
-            while i < tree_end and (buffer[i].type in ws or buffer[i].type in delims):
-                i += 1
+        def pack_matches():
+            nonlocal matches, i
 
-        parser = self.parser.copy()
-        parser.init_search(stmt_symbol)
-        i = tree.pos
-        tree_end = tree.pos + tree.length
-        skip_ws()
-        while i < tree_end:
-            if subtree and i >= subtree.pos - 1:
-                if i >= subtree.pos:
-                    raise Exception("algorithm error: skipped into subtree")
-                blocks = [branch for branch in parser.edge if branch.rule.symbol == "block_list" and not branch.children]
-                if blocks:
-                    parser.edge = blocks
-                    parser.push(buffer[i])
-                    parser.push(buffer[i + subtree.length + 1])
+            matches_re = []
+            msg = None
+            for match in matches:
+                try:
+                    self.validate(match)
+                    matches_re.append(match)
+                except Exception as exc:
+                    msg = format_exception_only(exc)
+            matches = matches_re
+            if not matches:
+                if match_pos >= tree_end:
+                    return
+                    # REASON: pack_matches() after leaving a block prints an error at nothing
+                code = " ".join(str(buffer[j]) for j in skip_subs(match_pos, match_end if msg else i, subs))
+                if not msg:
+                    msg = Exception("can't parse <stmt> ")
+                error = "{}at: {}".format(msg, code)
+                all_errors.append(error)
+                return
 
-                    subs.append(subtree)
-                    i += subtree.length + 2
-                    next_sub()
-                    match()
+            sub_pos = list(skip_subs(match_pos, match_end, subs))
+            sub_buffer = [buffer[j] for j in sub_pos]
+            sub_len = len(sub_buffer)
+
+            #print(subs)
+            #print("about to split:", sub_buffer)
+            remain_match, remain_parses = matches[0], 1
+            pos = 0
+            matches = []
+            offsets = []
+            parser.init_search(stmt_symbol)
+            for i1 in range(sub_len):
+                parser.push(sub_buffer[i1])
+                if not (i1 + 1 >= sub_len or sub_buffer[i1 + 1].type in delims):
+                    continue
+
+                matches1 = []
+                for match1 in parser.matches:
+                    #try:
+                        self.validate(match1)
+                        matches1.append(match1)
+                    #except:
+                    #    continue
+                if not matches1:
+                    continue
+
+                i2 = i1 + 2
+                while i2 < sub_len and sub_buffer[i2].type in ws:
+                    i2 += 1
+                parser2 = self.parser.copy()
+                parser2.init_search(stmt_symbol)
+                pos2 = i2
+                for i2 in range(i2, sub_len):
+                    parser2.push(sub_buffer[i2])
+
+                matches2 = []
+                for match2 in parser2.matches:
+                    #try:
+                        self.validate(match2)
+                        matches2.append(match2)
+                    #except:
+                    #    continue
+                if matches2:
+                    matches.append(matches1[0])
+                    offsets.append(sub_pos[pos])
+                    self.num_parses *= len(matches1)
+                    pos = pos2
+                    remain_match, remain_parses = matches2[0], len(matches2)
+                    parser.init_search(stmt_symbol)
+            matches.append(remain_match)
+            offsets.append(sub_pos[pos])
+            self.num_parses *= remain_parses
+            offsets.append(sub_pos[-1] + 2)
+            #print(len(matches))
+
+            all_code = []
+            for subtree in subs:
+                #print("subcheck")
+                code, errors = self.check(buffer, subtree)
+                all_code.append(code)
+                all_errors.extend(errors)
+
+            matches_re = []
+            for match, pos, end in zip(matches, offsets[:-1], offsets[1:]):
+                length = end - pos - 1
+                for subtree, code in reversed(list(zip(subs, all_code))):
+                    if pos <= subtree.pos - 1 and subtree.pos + subtree.length <= pos + length:
+                        offset = subtree.pos
+                        for subtree in reversed(subs):
+                            if offset > subtree.pos:
+                                offset -= subtree.length
+                        #print("inserting")
+                        # to test before you fix this
+                        self.insert(match, offset - pos, code)
+                matches_re.append(match)
+            all_matches.extend(matches_re)
+            #print("over")
+        def delim_split(): #
+            pass
+
+        def loop():
+            nonlocal i, matches, match_pos, match_end
+            parser.init_search(stmt_symbol)
+            skip_ws()
+            while i < tree_end:
+                if subtree and i >= subtree.pos - 1:
+                    if i >= subtree.pos:
+                        raise Exception("algorithm error: skipped into subtree")
+                    blocks = [branch for branch in parser.edge if branch.rule.symbol == "block_list" and not branch.children]
+                    # note - filters out expr_term by not listing it, and block_list has no problem with either
+                    # the entire motivation behind subs
+                    if blocks:
+                        parser.edge = blocks
+                        #parser.push(buffer[i])
+                        #parser.push(buffer[i + subtree.length + 1])
+                        from twocode.parse.Lexer import Token
+                        parser.push(Token("'{'"))
+                        parser.push(Token("'}'"))
+
+                        subs.append(subtree)
+                        i += subtree.length + 2
+                        next_sub()
+                        match()
+                    else:
+                        for st in reversed(subtree.children):
+                            subtrees.insert(0, st)
+                        next_sub()
                 else:
-                    for st in reversed(subtree.children):
-                        subtrees.insert(0, st)
-                    next_sub()
-            else:
-                parser.push(buffer[i])
-                i += 1
-                match()
-                if not (parser.matches or parser.possible()):
-                    pack_matches()
+                    parser.push(buffer[i])
+                    i += 1
+                    match()
+                    if not (parser.matches or parser.possible()):
+                        pack_matches()
 
-                    i -= 2
-                    while i < tree_end:
-                        if subtree:
-                            if i >= subtree.pos - 2:
-                                if buffer[i].type == "EOL" and buffer[i + 1].type == "ENTER":
-                                    i += subtree.length + 3
+                        i -= 2
+                        # REASON: trying to merge two lines(EOL VAR >PTR<), panicking would skip the next line
+                        if i < match_pos:
+                            i = match_pos
+                            # REASON: (EOL >PTR<) a wrong start with EOL before jumps in front of it and loops
+                        while i < tree_end:
+                            if subtree:
+                                if i >= subtree.pos - 2:
+                                    if buffer[i].type == "EOL" and buffer[i + 1].type == "ENTER":
+                                        i += subtree.length + 3
+                                        next_sub()
+                                        continue
+                                if i >= subtree.pos - 1:
+                                    i += subtree.length + 2
                                     next_sub()
                                     continue
-                            if i >= subtree.pos - 1:
-                                i += subtree.length + 2
-                                next_sub()
-                                continue
-                        if buffer[i].type in delims:
-                            break
+                            if buffer[i].type in delims:
+                                break
+                            i += 1
                         i += 1
 
-                    i += 1
-                    # class A: { func f(): return 2 }
-                    skip_ws() # infinite loop on EOL EOL
-                    matches = []
-                    subs.clear()
-                    parser.init_search(stmt_symbol)
-                    match_pos, match_end = i, None
-        pack_matches()
+                        skip_ws()
+                        matches = []
+                        subs.clear()
+                        parser.init_search(stmt_symbol)
+                        match_pos, match_end = i, None
+            pack_matches()
+        loop()
 
-        return all_matches, all_errors
+        return self.wrap_code(all_matches), all_errors
 
+# which parses a token buffer to sform a tree hierarchy
+# yield
 def parse_block_tree(buffer, leave_token=None, pos=0):
-    '''
+    """
         parses into a tree of ranges, identifying nested blocks
         LEAVE has higher priority than '}' and can leave without closing some brackets
-    '''
+    """
     tree = Node()
     i = pos
     while i < len(buffer):
@@ -271,35 +270,35 @@ def gen_insert(rules):
         for rule in rules:
             if repr(rule) == s:
                 return lambda *args: Node(rule=rule, children=args)
-
-    block_empty, block_list, code_append, code_stmt = [find_type(s) for s in textwrap.dedent('''
+    block_empty, block_list, code_append, code_stmt = [find_type(s) for s in textwrap.dedent("""
         block_list -> '{' '}'
         block_list -> '{' code '}'
         code -> code DELIM stmt
         code -> stmt
-    ''').strip().splitlines()]
+    """).strip().splitlines()]
 
     def wrap_code(lines):
         if not lines:
-            return block_empty()
+            return block_empty(Node(rule=None, token=None))
         node = code_stmt(lines[0])
         for stmt in lines[1:]:
             node = code_append(node, Node(rule=None, token=None), stmt)
         node = block_list(Node(rule=None, token=None), node, Node(rule=None, token=None))
-        # not necessary?
+        # REASON:
+        # useless fillers, but None and Node() crash the map travel,
+        # and rule=None requires token=None because it is a terminal
         return node
-
-    def insert(node, pos, lines): # unwrap
+    def insert(node, pos, code):
         def insert(node, range):
             p, len = range
             rule = node.rule
             if rule and rule.symbol == "block_list":
                 if p == pos - 1:
-                    return wrap_code(lines)
+                    return code
         range_call(l(insert))(node)
     return wrap_code, insert
 
-def gen_valid(*valids):
+def gen_valid_indent():
     def iter_tokens(node):
         for i, child in enumerate(node.children):
             if not child.rule:
@@ -311,16 +310,21 @@ def gen_valid(*valids):
         for child in node.children:
             tree_call(child, f)
         f(node)
-    # calls to iters
 
     def valid(node):
-        valid_lexer_empty_line(n.rule.symbol for n, i in iter_tokens(node))
-        for n, i in iter_tokens(node):
-            if n.rule.symbol == "ENTER":
+        # twice?
+        # print(node)
+        enum_tokens = list(iter_tokens(node))
+        #for n, i in enum_tokens:
+        #    print(n.rule.symbol, n.rule.pattern[i], repr(n.children[i].token))
+        valid_tokens_empty_line(n.rule.symbol for n, i in enum_tokens)
+        for n, i in enum_tokens:
+            # if n.rule.symbol == "ENTER":
+            if n.rule.pattern[i] == "ENTER":
                 indent = n.children[i].token
                 valid_indent_order(indent)
         indents = []
-        for n, i in iter_tokens(node):
+        for n, i in enum_tokens:
             rule = n.rule
             if rule.symbol == "block_list" and rule.pattern[i] == "ENTER":
                 indent = n.children[i].token
@@ -330,13 +334,11 @@ def gen_valid(*valids):
             valid_indent_odd(indent)
         itervalid_indent_consistent(indents)
         tree_call(node, valid_inline_block)
-        for valid in valids:
-            valid(node) #
     return valid
 
 def valid_indent_order(indent):
     if indent.lstrip("\t").lstrip(" "):
-        raise IndentationError()
+        raise IndentationError("spaces followed by tabs")
 def itervalid_indent_consistent(indents):
     style = None
     for indent in indents:
@@ -344,37 +346,39 @@ def itervalid_indent_consistent(indents):
             style = indent
         else:
             if indent != style:
-                raise IndentationError()
+                raise IndentationError("inconsistent indentation({}, was {})".format(repr(indent), repr(style)))
 def valid_indent_mixed(indent):
     if ("\t" in indent) == (" " in indent):
-        raise IndentationError()
+        raise IndentationError("mixed indentation")
 def valid_indent_odd(indent):
-    if "\t" in indent:
-        if len(indent) not in [1]:
-            raise IndentationError()
-    else:
+    if " " in indent:
         if len(indent) not in [1, 2, 3, 4, 8]:
-            raise IndentationError()
-def valid_lexer_empty_line(lexer):
+            raise IndentationError("odd number of spaces")
+    else:
+        if len(indent) not in [1]:
+            raise IndentationError("multiple tabs")
+def valid_tokens_empty_line(tokens):
     buffer = []
     error = "LEAVE EOL ENTER".split()
-    for token in lexer:
+    for token in tokens:
         buffer.append(token)
         if len(buffer) > 3:
             buffer.pop(0)
         if buffer == error:
-            raise IndentationError()
+            raise IndentationError("blocks separated by whitespace")
 
 def valid_inline_block(node):
     rule = node.rule
     if not rule:
         return
     if rule.symbol == "expr" and "block_list" in rule.pattern:
-        assert "ENTER" not in node.children[0].rule.pattern, "whitespace <expr_block>" #
-
-'''
+        assert "ENTER" not in node.children[0].rule.pattern, "whitespace <expr_block>"
+# last
+# TESTS!
+"""
 either isolate the ws block rule | look for block parents, we cant sub block_list
-'''
+"""
+# expr block?
 
 if __name__ == "__main__":
     from twocode.Twocode import Twocode
@@ -385,10 +389,13 @@ if __name__ == "__main__":
     from twocode.parse.Parser import IncrementalParser
     parser.parser = IncrementalParser(compiler.rules)
     from twocode.Twocode import twocode_prec
-    parser.valid = gen_valid(twocode_prec(compiler.rules))
+    parser.valids.append(gen_valid_indent())
+    parser.valids.append(twocode_prec(compiler.rules))
     parser.wrap_code, parser.insert = gen_insert(compiler.rules)
 
-    parser.parse(compiler.lexer.parse(open("samples/blocky.2c").read()))
-    ast = parser.match()
+    #parser.parse(compiler.lexer.parse(open("samples/blocky.2c").read()))
+    parser.parse(compiler.lexer.parse(open("../../code/code/iter.2c").read()))
+    ast = parser.matches[0]
     print()
     print(compiler.transform(ast))
+    parser.match()

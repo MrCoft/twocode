@@ -1,6 +1,12 @@
 from twocode.Tests import *
 
-tests_class = name_tests(
+# var x:Float
+# __new__ __default__
+
+# List() works
+    # [] printing []
+
+name_tests(
     true=evals("true"),
     false=evals("false"),
 
@@ -11,13 +17,13 @@ tests_class = name_tests(
 
     string_empty=evals('""'),
     string_simple=evals('"abc"'),
-    string_multiline=interacts('''
+    string_multiline=interacts("""
         >>> print("a\\nb")
         a
         b
-    '''),
+    """),
 
-    map=interacts('''
+    map=interacts("""
         >>> var a = ["key1": 123, "key2": 456,]
         >>> a
         ["key1": 123, "key2": 456]
@@ -26,7 +32,9 @@ tests_class = name_tests(
         >>> a["key3"] = 789
         >>> a
         ["key1": 123, "key2": 456, "key3": 789]
-    '''),
+    """),
+    map_contains=evals('"key1" in ["key1": 123]', "true"),
+    map_add=evals('["key1": 123] + ["key2": 456]', '["key1": 123, "key2": 456]'),
 
     list=evals("[1, 2]"),
     list_empty=evals("[]"),
@@ -43,3 +51,13 @@ tests_class = name_tests(
     code_recur=evals("macro macro 2"),
 )
 # type equality. true.__type__ is Bool
+
+# String() -> __str__
+# number literals
+
+# tuples, arrays
+
+# // **
+
+# int or float ** float
+# float and float // -> int

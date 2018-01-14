@@ -70,7 +70,6 @@ def dedent(text):
 
 escape_table = {eval('"\\{}"'.format(c)): c for c in "\\abfnrtv"}
 def escape(s, max_length=80):
-    ret = []
 
     # Try to split on whitespace, not in the middle of a word.
     split_at_space_pos = max_length - 10
@@ -78,14 +77,20 @@ def escape(s, max_length=80):
         split_at_space_pos = None
 
     position = 0
+    quote = None
 
-    quote = '"'
-    if '"' in s and "'" not in s:
-        quote = "'"
-    ret.append(quote)
+    buf = []
+    buf.append(None)
     position += 1
     for c in s:
         newline = False
+
+        if not quote:
+            if c == '"':
+                quote = "'"
+            elif c == "'":
+                quote = '"'
+
         if c == quote:
             to_add = "\\" + quote
         elif c in escape_table:
@@ -95,18 +100,22 @@ def escape(s, max_length=80):
         else:
             to_add = c
 
-        ret.append(to_add)
+        buf.append(to_add)
         position += len(to_add)
         if newline:
             position = 0
 
         if split_at_space_pos is not None and position >= split_at_space_pos and " \t".find(c) != -1:
-            ret.append("\\\n")
+            buf.append("\\\n")
             position = 0
         elif position >= max_length:
-            ret.append("\\\n")
+            buf.append("\\\n")
             position = 0
+    buf.append(None)
 
-    ret.append(quote)
+    if not quote:
+        quote = '"'
+    buf[0] = quote
+    buf[-1] = quote
 
-    return "".join(ret)
+    return "".join(buf)

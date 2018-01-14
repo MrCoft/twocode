@@ -1,6 +1,10 @@
 import twocode.Utils
 import twocode.utils.Code
-import copy
+import functools
+import builtins
+import twocode.utils.String
+
+delim = ".\t".replace("\t", " " * (4 - 1))
 
 class Node:
     def __init__(self, **kwargs):
@@ -13,7 +17,7 @@ class Node:
         ]
         for child in self.children:
             for line in str(child).splitlines():
-                lines.append(".\t{}".format(line))
+                lines.append(delim + line)
         return "\n".join(lines)
 
 def free_batch(group, cond):
@@ -79,6 +83,7 @@ def range_call(f):
     return filter
 
 def l(f):
+    @functools.wraps(f)
     def wrapped(tree, *args, **kwargs):
         result = f(tree, *args, **kwargs)
         return result if result else tree
@@ -118,50 +123,36 @@ def node_gen(name, vars):
                         for i in range(len(list_var)):
                             list_var[i] = next(children)
         def __repr__(self):
-            return compact_node(self, delim=".\t", arg_vars=[var.name for var in GenNode.vars])
+            return compact_node(self, delim=delim, arg_vars=[var.name for var in GenNode.vars])
     GenNode.vars = vars
     GenNode.__name__ = name
     return GenNode
-def regen_types(input_types):
-    node_types = {}
-    for type_name, input_type in input_types.items():
-        node_type = node_gen(type_name, copy.deepcopy(input_type.vars))
-        node_types[type_name] = node_type
 
-    def gen_retype(node_type):
-        def f(node):
-            return node_type(**node.__dict__)
-        return f
-    type_map = {}
-    for type_name, node_type in node_types.items():
-        type_map[type_name] = gen_retype(node_type)
-    return node_types, type_map
-
-def compact_value(value):
-    if type(value) is str:
-        return repr(value)
-    if type(value) is list:
+def compact_value(value, str=builtins.str):
+    if type(value) is builtins.str:
+        return twocode.utils.String.escape(value)
+    elif type(value) is list:
         return "\n".join(str(item) for item in value)
     else:
         return str(value)
-def compact_branches(value, delim=".\t"):
-    if type(value) is str:
+def compact_branches(value, delim=delim, str=builtins.str):
+    if type(value) is builtins.str:
         return False
     if type(value) is list:
         return True
     lines = str(value).splitlines()
     return len([line for line in lines if not line.startswith(delim)]) > 1
-def compact_block(value, branches=None, delim=".\t"):
-    code = compact_value(value)
+def compact_block(value, branches=None, delim=delim, str=builtins.str):
+    code = compact_value(value, str)
     if branches is None:
-        branches = compact_branches(value, delim)
+        branches = compact_branches(value, delim, str)
     lines = code.splitlines()
     if branches:
         return ("\n" + delim).join([""] + lines)
     else:
         return " " + "\n".join(lines)
-def compact_node(node, delim=".\t", arg_vars=None):
-    format_value = lambda value: compact_block(value, delim=delim)
+def compact_node(node, delim=delim, arg_vars=None, str=builtins.str):
+    format_value = lambda value: compact_block(value, delim=delim, str=str)
     name = type(node).__name__
     if len(node.__dict__) == 1:
         node = next(iter(node.__dict__.values()))
@@ -169,10 +160,10 @@ def compact_node(node, delim=".\t", arg_vars=None):
             return name + " " + str(node)
         else:
             # REASON: to have ":" before repr(value), and to do lists of all sizes the same way
-            return name + ":" + compact_block(node, delim=delim)
+            return name + ":" + compact_block(node, delim=delim, str=str)
     lines = [
         "{}:{}".format(key, format_value(value)) for key, value in sorted(twocode.Utils.redict(node.__dict__, arg_vars).items())
     ] + [
         "{}:{}".format(key, format_value(node.__dict__[key])) for key in arg_vars
     ]
-    return name + ":" + compact_block(lines, True, delim)
+    return name + ":" + compact_block(lines, True, delim, str)

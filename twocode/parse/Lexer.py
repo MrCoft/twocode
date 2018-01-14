@@ -1,5 +1,4 @@
 import re
-from twocode.utils.Nodes import all_common, free_batch, substr
 from twocode.utils.Interface import preview
 from twocode.utils.String import shared_str, escape
 
@@ -87,6 +86,9 @@ class LexModel:
                     return bool(result)
                 return rule
             rule_pass = basic_rule_gen(lambda match: (token, match))
+            # REASON:
+            # the node tree only has data of tokens, terminal nodes without rules have them set
+            # used by id, literals, ops generated in grammar
             rule_token = basic_rule_gen(lambda match: (token, None))
             rule_raw = basic_rule_gen(lambda match: ("'" + match + "'", None))
             def rule_none(lexer):
@@ -157,42 +159,28 @@ class LexModel:
 
 class LexLanguage:
     def __init__(self):
-        self.keywords = set()
+        self.keywords = []
         self.ops = {}
-        self.raw = set()
+        self.raw = []
         self.literals = {}
         self.allow_ws = False
         self.indent_block = False
-
-        self.unfit = {}
     def form_model(self):
         lex_model = LexModel()
         sort = lambda list: sorted(sorted(list), key=len)
         for keyword in sort(self.keywords):
-            lex_model.add_rule(keyword + "(?![_a-zA-Z0-9])", "raw")
+            lex_model.add_rule(re.escape(keyword) + (r'(?!\w)' if re.match(r'\w', keyword[-1]) else ""), "raw")
+            # REASON: conflict with id if id-like, don't test for e.g. an ellipsis (...)
         for name, literal in sort(self.literals.items()):
-            lex_model.add_rule("({})(?![_a-zA-Z0-9])".format(literal), "pass", "LITERAL_" + name)
-        all, common = all_common(self.ops.values())
-        common |= all & self.raw
-        all -= self.raw
-        for name, group in self.ops.items():
-            match = group & common
-            if match:
-                self.unfit[name] = match
-        all = all.union(self.raw)
-        for batch in free_batch(list(all), substr):
-            all -= set(batch)
-            for name, group in self.ops.items():
-                items = set()
-                for item in group:
-                    if item in batch and item not in common:
-                        items.add(item)
-                        batch.remove(item)
-                if items:
-                    lex_model.add_rule("|".join(re.escape(item) for item in sort(items)), "pass", name)
-            if batch:
-                lex_model.add_rule("|".join(re.escape(item) for item in sort(batch)), "raw")
-        lex_model.add_rule('[_a-zA-Z][_a-zA-Z0-9]*', "pass", "id")
+            lex_model.add_rule(literal, "pass", "LITERAL_" + name)
+        raw = set(self.raw)
+        for group in self.ops.values():
+            for item in group:
+                for char in item:
+                    raw.add(char)
+        for item in raw:
+            lex_model.add_rule(re.escape(item), "raw")
+        lex_model.add_rule(r'[_a-zA-Z]\w*', "pass", "id")
         lex_model.add_rule(r'\\(\r\n|\r|\n)', "none")
         # REASON: ignore \<EOL>
         lex_model.add_rule(r'(\r\n|\r|\n)[\t ]*(?=\r\n|\r|\n|$)', "line")
@@ -203,18 +191,21 @@ class LexLanguage:
         lex_model.add_rule(r'[ \t]+', "token" if self.allow_ws else "none", "WS")
         lex_model.add_rule(r'.|\n', "error")
         return lex_model
+# fail on default_, if_
+# should it match longest instead?
+# oops. it does not. interesting thought though
 
 def default_lex():
     lex_lang = LexLanguage()
-    lex_lang.keywords = {"if", "while", "for", "class", "return"}
+    lex_lang.keywords = "if while for class return".split()
     lex_lang.ops = {
-        "ASSIGN": {'+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '&&=', '||=', '='},
-        "COMPARE": {'<', '>', '<=', '>=', '!=', '=='},
-        "MATH": {'+', '-', '*', '/', '%', '&', '|', '^', '<<', '>>', '>>>', '&&', '||'},
-        "FIX": {'++', '--'},
-        "UNARY": {'+', '-', '!', '~'},
+        "ASSIGN": "+= -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= =".split(),
+        "COMPARE": "< > <= >= != ==".split(),
+        "MATH": "+ - * / % & | ^ << >> >>> && ||".split(),
+        "FIX": "++ --".split(),
+        "UNARY": "+ - ! ~".split(),
     }
-    lex_lang.raw = {'=', '(', ')', '[', ']', '{', '}', '.', ',', '<', '>'}
+    lex_lang.raw = "= ( ) [ ] { } . , < >".split()
     lex_lang.literals = {
         "boolean": 'true|false',
         "integer": '0|[1-9][0-9]*',
@@ -230,7 +221,6 @@ def default_lex():
 if __name__ == "__main__":
     lex_lang = default_lex()
     lex_model = lex_lang.form_model()
-    print("unfit:", lex_lang.unfit)
     lexer = lex_model.form_lexer()
     with open("samples/test.txt") as file:
         try:

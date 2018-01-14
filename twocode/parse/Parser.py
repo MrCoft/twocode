@@ -6,9 +6,20 @@ import copy
 
 class Parser:
     def __init__(self, rules):
-        '''
+        """
+            DESIGN:
+            finds ways to build symbols out of symbols for every position in the buffer
+            uses a convention of searching by rule's pattern's last symbol
+            and stores end positions of submatches
+
+            say you want to build C -> A B at 100
+            100 says you can build 10 and 15 length B that end there
+            you look for A at 90 and 85, find 1-length As there
+            log that you can build 11 and 16 length C at 100
+
+            VARS:
             applicable - rules by their last symbol
-        '''
+        """
         self.rules = rules
         symbol_scope = set(symbol for rule in self.rules for symbol in rule.pattern) | set(
             rule.symbol for rule in self.rules)
@@ -19,60 +30,48 @@ class Parser:
         for rule in self.rules:
             if rule.symbol not in self.symbols:
                 self.symbols.append(rule.symbol)
-    current = None
     def parse(self, lexer):
+        """
+            push sequentially, at each position building from those before
+            a complete match will have a buffer-length "file" symbol built at the last position
+        """
         self.buffer = []
-        self.trees = []
-        Parser.current = self
+        self.submatches = []
         for token in lexer:
-            self.buffer.append(token)
-            tree = Parser.Tree(token.type)
-            self.trees.append(tree)
-            while tree.edge:
-                tree.expand()
-    def match(self, symbol=None):
-        if symbol is None: symbol = self.rules[0].symbol
-        if symbol in self.trees[-1].reduces:
-            if len(self.buffer) in self.trees[-1].reduces[symbol]:
-                return self.first_tree(symbol, len(self.buffer) - 1, len(self.buffer))
-        raise Parser.NoMatch(symbol)
-    def best_match(self):
-        for symbol in self.symbols:
-            try:
-                return self.match(symbol)
-            except Parser.NoMatch:
-                pass
-        raise Parser.NoMatch("symbol")
-    class NoMatch(Exception):
-        pass
-    class Tree:
-        ''' submatches at a position '''
-        def __init__(self, symbol):
-            '''
-                reduces - complete parsed subtrees
-                    {expr: {len: [(rule_call, [1,13,4]),..
-                    for each symbol, length, rule, distribution
-                edge - unexpanded lengths for each symbol at current position
-            '''
-            self.reduces = {symbol: {1: [(None, [1])]}}
-            self.edge = {symbol: {1}}
-        def expand(self):
-            parser = Parser.current
-            edge = {}
-            for last_symbol, lens in self.edge.items():
-                rules = parser.applicable[last_symbol]
+            self.push(token)
+    def push(self, token):
+        """
+            start with the raw token then expand repeatedly
+            expand checks if any rule can build anything new   # there's no expand
+            "edge" being the most recently added submatches
+
+            VARS:
+            reduces - complete parsed submatches at a position
+                {expr: {len: [(rule_call, [1, 13, 4]),..
+                for each symbol, length, rule, distribution
+            edge - unexpanded lengths for each symbol at current position
+        """
+        self.buffer.append(token)
+        symbol = token.type
+        reduces = {symbol: {1: [(None, [1])]}}
+        self.submatches.append(reduces)
+        edge = {symbol: {1}}
+        while edge:
+            edge_re = {}
+            for last_symbol, lens in edge.items():
+                rules = self.applicable[last_symbol]
                 for rule in rules:
                     for symbol_len in lens:
                         def pattern_distribs(pattern_index, at):
-                            '''
+                            """
                                 goes backwards through a rule's pattern, gathering distributions
-                                by going through possible symbol lengths and stepping back through the trees
-                            '''
+                                by going through possible symbol lengths and stepping back through the submatches
+                            """
                             if at >= 0:
-                                tree = parser.trees[at]
+                                submatch = self.submatches[at]
                                 symbol = rule.pattern[pattern_index]
-                                if symbol in tree.reduces:
-                                    lens = sorted(tree.reduces[symbol].keys())
+                                if symbol in submatch:
+                                    lens = sorted(submatch[symbol].keys())
                                 else:
                                     return []
                                 if pattern_index == 0:
@@ -88,54 +87,85 @@ class Parser:
                             else:
                                 return []
                         if len(rule.pattern) > 1:
-                            distribs = pattern_distribs(len(rule.pattern) - 2, len(parser.trees) - 1 - symbol_len)
+                            distribs = pattern_distribs(len(rule.pattern) - 2, len(self.submatches) - 1 - symbol_len)
                         else:
                             distribs = [[]]
                         if distribs:
                             symbol = rule.symbol
-                            self.reduces.setdefault(symbol, {})
+                            reduces.setdefault(symbol, {})
                             for distr in distribs:
                                 distr += [symbol_len]
                                 match_len = sum(distr)
-                                if not self.reduces[symbol].setdefault(match_len, []):
-                                    edge.setdefault(symbol, set()).add(match_len)
-                                self.reduces[symbol][match_len].append((rule, distr))
-            self.edge = edge
-    def first_tree(self, symbol, at, symbol_len):
-        rule, distr = self.trees[at].reduces[symbol][symbol_len][0]
+                                if not reduces[symbol].setdefault(match_len, []):
+                                    edge_re.setdefault(symbol, set()).add(match_len)
+                                reduces[symbol][match_len].append((rule, distr))
+            edge = edge_re
+    def match(self, symbol=None):
+        if symbol is None: symbol = self.rules[0].symbol
+        if symbol in self.submatches[-1]:
+            if len(self.buffer) in self.submatches[-1][symbol]:
+                return self.first_match(symbol, len(self.buffer) - 1, len(self.buffer))
+        raise Parser.NoMatch(symbol)
+    def best_match(self):
+        for symbol in self.symbols:
+            try:
+                return self.match(symbol)
+            except Parser.NoMatch:
+                pass
+        raise Parser.NoMatch("symbol")
+    class NoMatch(Exception):
+        pass
+    def first_match(self, symbol, at, symbol_len):
+        rule, distr = self.submatches[at][symbol][symbol_len][0]
         if not rule:
             return Node(rule=None, token=getattr(self.buffer[at], "data", None))
         jump = at - symbol_len
         children = []
         for sym, sym_len in zip(rule.pattern, distr):
             jump += sym_len
-            children.append(self.first_tree(sym, jump, sym_len))
+            children.append(self.first_match(sym, jump, sym_len))
         return Node(rule=rule, children=children)
-    def enum_trees(self, symbol, at, symbol_len):
-        '''
+    def enum_matches(self, symbol, at, symbol_len):
+        """
             builds a symbol, combining possible distributions
-        '''
-        trees = []
-        for rule, distr in self.trees[at].reduces[symbol][symbol_len]:
+        """
+        matches = []
+        for rule, distr in self.submatches[at][symbol][symbol_len]:
             if not rule:
-                trees += [Node(rule=None, token=getattr(self.buffer[at], "data", None))]
+                matches += [Node(rule=None, token=getattr(self.buffer[at], "data", None))]
                 continue
-            branches = None
+            submatches = None
             jump = at - symbol_len
             for sym, sym_len in zip(rule.pattern, distr):
                 jump += sym_len
-                sym_trees = self.enum_trees(sym, jump, sym_len)
-                if not branches:
-                    branches = [Node(rule=rule, children=[tree]) for tree in sym_trees]
+                sym_matches = self.enum_matches(sym, jump, sym_len)
+                if not submatches:
+                    submatches = [Node(rule=rule, children=[sym_match]) for sym_match in sym_matches]
                 else:
-                    branches = [Node(rule=tree.rule, children=tree.children + [subtree]) for tree in branches for
-                                subtree in sym_trees]
-            trees += branches
-        return trees
+                    submatches = [Node(rule=submatch.rule, children=submatch.children + [sym_match]) for submatch in submatches for
+                                sym_match in sym_matches]
+            matches += submatches
+        return matches
     def __str__(self):
         return pprint.pformat(self.rules)
 
 class IncrementalParser:
+    """
+        DESIGN:
+        built to be fed tokens, can tell you when exactly matching becomes impossible
+        useful for manual grammar for preprocessors
+
+        you start with init_search() for a symbol
+        IP expand()s that into more symbols, looking through all possible ways each symbol can be created
+        creating a graph of incomplete nodes with those expecting raw tokens being the edge
+        you can get to the same symbol by different paths
+        so we merge them, creating nodes with multiple parents
+
+        on push, feed the token into nodes expecting it and discard the rest
+        if this was the last token the node needed it creates a copy of its parent and inserts itself into it
+        looks what is needed next, expands into new edge nodes
+        when this propagates to the required symbol, a full match is found
+    """
     def __init__(self, rules):
         self.rules = rules
         self.symbol_rules = {}
@@ -145,7 +175,7 @@ class IncrementalParser:
         self.matches = []
     def init_search(self, symbol=None):
         if symbol is None: symbol = self.rules[0].symbol
-        self.edge = [IncrementalParser.Branch([], rule) for rule in self.symbol_rules[symbol]]
+        self.edge = [IncrementalParser.Match([], rule) for rule in self.symbol_rules[symbol]]
         self.expand()
         self.matches = []
     def match(self):
@@ -158,58 +188,58 @@ class IncrementalParser:
     class NoMatch(Exception):
         def __str__(self):
             return "match not possible"
-    class Branch:
+    class Match:
         def __init__(self, parents, rule):
             self.parents = parents
             self.rule = rule
             self.children = []
         def __deepcopy__(self, memo):
-            branch = IncrementalParser.Branch(copy.deepcopy(self.parents, memo=memo), self.rule)
+            match = IncrementalParser.Match(copy.deepcopy(self.parents, memo=memo), self.rule)
             copy_node = lambda node: Node(rule=node.rule, children=[copy_node(child) for child in node.children], **Utils.redict(node.__dict__, "rule children".split()))
-            branch.children = [copy_node(child) for child in self.children]
-            return branch
+            match.children = [copy_node(child) for child in self.children]
+            return match
     def expand(self):
         edge = self.edge
         self.edge = []
         self.matches = []
         while edge:
             edge_re = []
-            for branch in edge:
-                if len(branch.children) == len(branch.rule.pattern):
-                    if not branch.parents:
-                        self.matches.append(Node(rule=branch.rule, children=branch.children))
+            for match in edge:
+                if len(match.children) == len(match.rule.pattern):
+                    if not match.parents:
+                        self.matches.append(Node(rule=match.rule, children=match.children))
                     else:
-                        for parent in branch.parents:
-                            parent_branch = IncrementalParser.Branch(parent.parents, parent.rule)
-                            parent_branch.children = parent.children.copy()
-                            parent_branch.children.append(Node(rule=branch.rule, children=branch.children))
-                            edge_re.append(parent_branch)
+                        for parent in match.parents:
+                            parent_match = IncrementalParser.Match(parent.parents, parent.rule)
+                            parent_match.children = parent.children.copy()
+                            parent_match.children.append(Node(rule=match.rule, children=match.children))
+                            edge_re.append(parent_match)
                 else:
-                    self.edge.append(branch)
+                    self.edge.append(match)
             edge = edge_re
         edge = self.edge
         self.edge = []
         shared_gen = {}
         while edge:
             edge_re = []
-            for branch in edge:
-                symbol = branch.rule.pattern[len(branch.children)]
+            for match in edge:
+                symbol = match.rule.pattern[len(match.children)]
                 if symbol in self.symbol_rules:
                     for rule in self.symbol_rules[symbol]:
                         if rule not in shared_gen:
-                            shared_gen[rule] = IncrementalParser.Branch([], rule)
+                            shared_gen[rule] = IncrementalParser.Match([], rule)
                             edge_re.append(shared_gen[rule])
-                        shared_gen[rule].parents.append(branch)
+                        shared_gen[rule].parents.append(match)
                 else:
-                    self.edge.append(branch)
+                    self.edge.append(match)
             edge = edge_re
     def push(self, token):
         edge = []
-        for branch in self.edge:
-            rule = branch.rule
-            if rule.pattern[len(branch.children)] == token.type:
-                branch.children.append(Node(rule=None, token=getattr(token, "data", None)))
-                edge.append(branch)
+        for match in self.edge:
+            rule = match.rule
+            if rule.pattern[len(match.children)] == token.type:
+                match.children.append(Node(rule=None, token=getattr(token, "data", None)))
+                edge.append(match)
         self.edge = edge
         self.expand()
     def parse(self, lexer, symbol=None):
@@ -245,8 +275,8 @@ if __name__ == "__main__":
     lexer = lex_model.form_lexer()
 
     grammar = Grammar.default_grammar()
+    grammar.ops = lex_lang.ops
     grammar.literals = lex_lang.literals
-    grammar.unfit = lex_lang.unfit
     rules = grammar.form_rules()
     parser = Parser(rules)
     with open("samples/test.txt") as file:

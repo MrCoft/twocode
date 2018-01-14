@@ -1,12 +1,22 @@
 import inspect
 import twocode.utils.String
-import traceback
+import functools
+import textwrap
+from twocode.utils.Code import format_exception_only
+from twocode import Utils
+import io
 
-func_gen = lambda f: lambda *args, **kwargs: lambda: f(*args, **kwargs)
+def func_gen(f):
+    def wrap(*args, **kwargs):
+        def wrapped():
+            return f(*args, **kwargs)
+        return wrapped
+    return wrap
 def code_arg(name=None):
     raw = "raw" if not name else "raw_" + name
     def wrap(f):
         format = lambda code: twocode.utils.String.dedent(code).strip().replace("\t", " " * 4)
+        @functools.wraps(f)
         def wrapped(*args, **kwargs):
             if not name:
                 if args:
@@ -31,21 +41,22 @@ def code_arg(name=None):
 
 from twocode.Twocode import Twocode
 context = Twocode()
+# context.declare("T", context.obj.Class())
 
 @func_gen
 @code_arg()
 @code_arg("result")
-def cmp(code, result=None):
+def cmp(code, result=None, macro=True):
     if result is None: result = code
     reflect = str(context.parser.parse(code))
     assert context.parser.parser.num_parses == 1, "Parse of {} not unique".format(repr(code))
     assert reflect == result, "Expected {}, got {}".format(repr(result), repr(reflect))
+    if not macro:
+        return
     code, result = "macro {}".format(code), "macro {}".format(result)
     obj = context.eval(context.parse(code))
     obj = context.shell_repr(obj)
-    print(type(obj), len(repr(obj)))
-    # assert obj == result, "Expected {}, got {}".format(repr(result), repr(obj))
-    assert obj == result
+    assert obj == result, "Expected {}, got {}".format(repr(result), repr(obj))
 @func_gen
 @code_arg()
 def fails(code, error=None):
@@ -56,11 +67,11 @@ def fails(code, error=None):
             return
         if type(exc).__name__ == error:
             return
-        msg = traceback.format_exception(type(exc), exc, None)
-        msg = "".join(msg)
+        msg = format_exception_only(exc).rstrip()
         if msg == error:
             return
-    raise Exception("Expected {} to raise {}".format(repr(code), str(error) if error else "an exception"))
+        raise Exception("Expected {} to raise\n{}\ngot\n{}".format(repr(code), textwrap.indent(error, " " * 4), textwrap.indent(msg, " " * 4)))
+    raise Exception("Expected {} to raise{}".format(repr(code), "\n{}".format(textwrap.indent(error, " " * 4)) if error else " an exception"))
 @func_gen
 @code_arg()
 def compiles(code):
@@ -77,14 +88,30 @@ def parses(code, result):
 def evals(code, result=None):
     if result is None: result = code
     obj = context.eval(context.parse(code))
-    obj = context.call(context.builtins.repr, ((obj,), {}))
-    obj = context.unwrap_value(obj)
+    obj = context.call(context.operators.repr, ([obj], {}))
+    obj = context.unwrap(obj)
     assert obj == result, "Expected {}, got {}".format(repr(result), repr(obj))
 @func_gen
 @code_arg()
 def interacts(log):
+    assert 1 == 2
+    from twocode.Twocode import Console
+    console = Console(context)
+    buf = io.StringIO(log)
+    buf.seek(0)
+    def print_cmp(s):
+        result = buf.read(len(s))
+        assert s == result, "Expected {}, got {}".format(repr(result), repr(s))
+    with Utils.Streams(
+        stdin=buf,
+        stdout=Utils.Object(write=print_cmp, flush=lambda: None),
+        stderr=Utils.Object(write=print_cmp, flush=lambda: None),
+    ):
+        console.interact()
+"""
+def interacts(log):
     code_lines = []
-    output = []
+    output = io.StringIO()
     def run():
         nonlocal code_lines
         if not code_lines:
@@ -92,7 +119,8 @@ def interacts(log):
         code = "\n".join(code_lines)
         code_lines = []
 
-        obj = context.eval(context.parse(code))
+        with Utils.Streams(stdout=buf, stderr=buf):
+            obj = context.eval(context.parse(code))
         obj = context.shell_repr(obj)
         if obj is None: obj = ""
         output.append(obj)
@@ -109,7 +137,7 @@ def interacts(log):
 
     output = "\n".join(output)
     assert output == log, "\n\n".join(["Expected:", log, "Got:", output])
-# prints?
+"""
 
 def name_tests(*args, **kwargs):
     frame, filename, lineno, function, code_context, index = inspect.stack(0)[1]

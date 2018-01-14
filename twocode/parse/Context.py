@@ -7,8 +7,8 @@ class Context:
         lex_model = lex_lang.form_model()
         self.lexer = lex_model.form_lexer()
 
+        grammar.ops = lex_lang.ops
         grammar.literals = lex_lang.literals
-        grammar.unfit = lex_lang.unfit
         self.rules = grammar.form_rules()
         self.parser = Parser.IncrementalParser(self.rules)
 

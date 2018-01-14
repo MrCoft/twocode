@@ -19,30 +19,30 @@ name_tests(
     # if-else blocks
     # - expand is forced for a chain
     # - empty is always {}
-    if_else=cmp('''
+    if_else=cmp("""
         if true: {}
         else: {}
-    '''),
-    if_else_if=cmp('''
+    """),
+    if_else_if=cmp("""
         if true: {}
         else if false: {}
-    '''),
-    if_multiple=cmp('''
+    """),
+    if_multiple=cmp("""
         if true:
             1
             2
-    '''),
-    if_expand=cmp('''
+    """),
+    if_expand=cmp("""
         if true:
             1
         else if false:
             2
-    '''),
-    if_force_empty=cmp('''
+    """),
+    if_force_empty=cmp("""
         if true: {}
         else if false:
             2
-    '''),
+    """),
     # terms
     term_index=cmp("l[0]"),
     term_call=cmp("f()"),
@@ -69,3 +69,17 @@ name_tests(
 # test crements
 # 1 + 2, 1 + parses, +1 fails
 # []
+
+# the graph print
+
+# .tuple.expr rm
+# is block a stmt? if so remove chains
+
+#@id("loop") {
+#}
+
+# format.args[0].name = "this"
+
+# test for current macro bullshit
+
+# test_codegen, or probably a notebook (both)
