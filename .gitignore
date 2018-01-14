@@ -25,8 +25,8 @@ integration/
 # Unpresentables #
 ##################
 todo.txt
-code/
 code.new/
+code.new2/
 win-cpp/
 roadmap/
 design-decisions.md
