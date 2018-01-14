@@ -293,8 +293,7 @@ def add_scope(context):
                 qualnames[context.hash(obj)] = name
             this.__this__[name] = context.obj.Var(obj)
 
-        import twocode
-        codebase = os.path.join(os.path.dirname(os.path.dirname(twocode.__file__)), "code")
+        from twocode.code import codebase
         sources.append(codebase)
 
         w_this = context.Wrapper(this)

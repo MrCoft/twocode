@@ -1,17 +1,17 @@
 from twocode.Tests import *
 
 name_tests(
-    repr_null=interacts("""
+    repr_null = interacts("""
         >>> null
         >>> 2
         2
     """),
-    input_cont=interacts("""
+    input_cont = interacts("""
         >>> 1 +
         ... 2
         3
     """),
-    macro_arg=interacts("""
+    macro_arg = interacts("""
         >>> func f(x): return x
         func(x): return x
         >>> func g(macro x): return x
@@ -28,13 +28,13 @@ name_tests(
     # context.call signature
     # - function with an arg called obj
     # - with the context.call(obj, *args, **kwargs) signature, this fails
-    func_sign_obj=interacts("""
+    func_sign_obj = interacts("""
         >>> (func(obj): return obj)(2)
         2
     """),
     # prec=num_parses("1 + 2 * 3"),
 
-    affix=interacts("""
+    affix = interacts("""
         >>> var i = 0
         >>> i++
         0
@@ -45,8 +45,8 @@ name_tests(
         >>> i
         2
     """),
-    sign_neg=evals("-1"),
-    sign_pos=evals("+1", "1"),
+    sign_neg = evals("-1"),
+    sign_pos = evals("+1", "1"),
 )
 # fails("1+")
 

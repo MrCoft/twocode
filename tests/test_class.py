@@ -2,14 +2,14 @@ from twocode.Tests import *
 
 name_tests(
     # syntax,
-    syntax=cmp("class A: {}"),
-    anon=cmp("class: {}"),
+    syntax = cmp("class A: {}"),
+    anon = cmp("class: {}"),
     # fails - class A {}
     # stmt
-    stmt=cmp("var A = class: {}"),
+    stmt = cmp("var A = class: {}"),
 
-    repr_var=evals("class: var x"),
-    repr_var_value=evals("class: var x = 2"),
+    repr_var = evals("class: var x"),
+    repr_var_value = evals("class: var x = 2"),
 )
 
 
