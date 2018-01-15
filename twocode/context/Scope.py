@@ -19,6 +19,13 @@ import os
 # and be able to continue from any point i currently wrap in try except
 # so unlike python code and a recursive eval
 
+import twocode
+codebase = os.path.join(os.path.dirname(os.path.dirname(twocode.__file__)), "code")
+if not os.path.exists(os.path.join(codebase, "__package__.2c")):
+    codebase = os.path.join(os.path.dirname(twocode.__file__), "code")
+    if not os.path.exists(os.path.join(codebase, "__package__.2c")):
+        raise Exception("Twocode codebase not found")
+
 def add_scope(context):
     @inline_exc(TypeError)
     def declare(name, value, type=None):

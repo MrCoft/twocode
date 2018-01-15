@@ -9,11 +9,12 @@ setup(
     packages = find_packages(exclude="tests".split()) + ["twocode.code"],
     # REASON: without, it installs an accessible "tests" module
     package_dir = {"twocode.code": "code"},
-    package_data = {"twocode.code": "*"},
+    package_data = {"twocode.code": "**"},
     # REASON:
     # Manifest.in doesn't work
     # I can't add "code" as a package because it doesn't have __init__.py
     # it has to be hidden, this works, twocode.code just needs to exist
+    # when installing from git, it deletes twocode/code/__init__.py?
 
     entry_points = {
         "console_scripts": [
