@@ -337,6 +337,7 @@ def scope_builtins(context):
 
 def scope_types(context):
     code = context.imp("code")
+    #
     declare = context.impl(context.scope_types.Module, "declare")
     def place_types(types_name, module_name=None):
         if module_name is None: module_name = types_name

@@ -3,18 +3,26 @@ from setuptools import setup, find_packages
 
 import twocode
 
+import os
+ROOT = os.path.abspath(os.path.dirname(__file__))
+codebase_files = [
+    os.path.abspath(os.path.join(root, file))[len(ROOT):].lstrip(os.path.sep)
+for root, dirs, files in os.walk(os.path.join(ROOT, "code")) for file in files]
+codebase_files = [(os.path.join("twocode", os.path.dirname(file)).replace(os.path.sep, "/"), [file.replace(os.path.sep, "/")]) for file in codebase_files]
+
 setup(
     name = "Twocode",
     version = twocode.__version__,
-    packages = find_packages(exclude="tests".split()) + ["twocode.code"],
+    packages = find_packages(exclude="tests".split()),
     # REASON: without, it installs an accessible "tests" module
-    package_dir = {"twocode.code": "code"},
-    package_data = {"twocode.code": "**"},
+    data_files = codebase_files,
     # REASON:
-    # Manifest.in doesn't work
+    # Manifest.in does nothing
     # I can't add "code" as a package because it doesn't have __init__.py
-    # it has to be hidden, this works, twocode.code just needs to exist
+    # it has to be hidden, twocode.code just needs to exist
     # when installing from git, it deletes twocode/code/__init__.py?
+    # package_data uses glob whose **/* is recursive 1 level only
+    # listed manually because nothing else works
 
     entry_points = {
         "console_scripts": [
