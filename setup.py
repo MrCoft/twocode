@@ -8,7 +8,9 @@ ROOT = os.path.abspath(os.path.dirname(__file__))
 codebase_files = [
     os.path.abspath(os.path.join(root, file))[len(ROOT):].lstrip(os.path.sep)
 for root, dirs, files in os.walk(os.path.join(ROOT, "code")) for file in files]
+print(codebase_files)
 codebase_files = [(os.path.join("twocode", os.path.dirname(file)).replace(os.path.sep, "/"), [file.replace(os.path.sep, "/")]) for file in codebase_files]
+print(codebase_files)
 
 setup(
     name = "Twocode",
