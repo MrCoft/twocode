@@ -8,9 +8,7 @@ ROOT = os.path.abspath(os.path.dirname(__file__))
 codebase_files = [
     os.path.abspath(os.path.join(root, file))[len(ROOT):].lstrip(os.path.sep)
 for root, dirs, files in os.walk(os.path.join(ROOT, "code")) for file in files]
-print(codebase_files)
 codebase_files = [(os.path.join("twocode", os.path.dirname(file)).replace(os.path.sep, "/"), [file.replace(os.path.sep, "/")]) for file in codebase_files]
-print(codebase_files)
 
 setup(
     name = "Twocode",
@@ -25,6 +23,7 @@ setup(
     # when installing from git, it deletes twocode/code/__init__.py?
     # package_data uses glob whose **/* is recursive 1 level only
     # listed manually because nothing else works
+    # it turns out pip install git+ bypasses setuptools, easy_install works
 
     entry_points = {
         "console_scripts": [
