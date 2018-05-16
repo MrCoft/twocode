@@ -18,26 +18,14 @@ dist/
 
 # Plugin #
 ##########
-idea/
-IntelliJ/
-integration/
 
 # Unpresentables #
 ##################
-todo.txt
-code.new/
-code.new2/
-win-cpp/
-roadmap/
-design-decisions.md
-design-decisions/
-design-decisions.new/
-cpp/
-
-2c.png
-jupyter_notebook.py
-
-notebooks/
-!notebooks/codeedit.ipynb
-optim/
+stuff/
 todo/
+notebooks/*
+optim/
+jupyter_notebook.py
+math_env.py
+
+!notebooks/codeedit.ipynb

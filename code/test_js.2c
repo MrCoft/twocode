@@ -1,0 +1,169 @@
+var map_format = [
+    "type_id": "{id}",
+    "stmt_tuple": "{tuple}",
+    "stmt_break": "break",
+    "stmt_continue": "continue",
+    "assign": "{op} {tuple}",
+    "tuple_expr": "{expr}",
+    "expr_term": "{term}",
+    "expr_math": "{expr1} {op} {expr2}",
+    "expr_compare": "{expr1} {op} {expr2}",
+    "expr_unary": "{op}{expr}",
+    "expr_if": "{if_chain}",
+    "expr_try": "{try_chain}",
+    "expr_for": "{for_loop}",
+    "expr_while": "{while_loop}",
+    "term_id": "{id}",
+    "term_attr": "{term}.{id}",
+    "term_key": "{term}[{tuple}]",
+    "term_literal": "{literal}",
+    "term_list": "[{tuple}]",
+    "term_map": "{{{map}}}",
+]
+var map_lambda = [
+    "stmt_assign": node -> (js_repr(node.terms.term) + " " + js_repr(node.assign_chain[0])),
+    "stmt_var": node -> ("var " + (for decl in node.vars: decl.id).join() + " " + js_repr(node.assign_chain[0])),
+    "stmt_return": node -> ("return" + (if node.tuple: (" " + js_repr(node.tuple)) else: "")),
+    "literal": node -> (if not (node.type == "string"): node.value else: repr(node.value)),
+]
+
+func map(obj, ?name):
+    if obj.__type__ == Func:
+        var args = []
+        for arg in obj.args:
+            var arg_code = arg.name + (if arg.type: ":{}".format(arg.type.__name__) else: "") + (if arg.default_: " = {}".format(js_repr(arg.default_)) else: "")
+            args.push(arg_code)
+        var block_code = wrap_block(obj.code, expand=true)
+        var code = "function {}({}) {}".format(name, args.join(), block_code)
+        return code
+        code = "function ID(a, b) {"
+    return repr(obj)
+func wrap_block(node, start_block=true, expand=false):
+    var margin = () -> (if start_block: " " else: "")
+    var lines = js_repr(node).splitlines()
+    if not lines:
+        return margin() + "{}"
+    if lines.length() > 1 or expand:
+        return " {{{}\n}}".format((for line in lines: ("\n" + (" " * 4) + line)).join(""))
+    else:
+        return margin() + lines[0]
+
+func map_code(node):
+    var lines = []
+    for stmt in node.lines:
+        var stmt_code = js_repr(stmt)
+        if not stmt_code.endswith("}"):
+            stmt_code = stmt_code + ";"
+        lines.push(stmt_code)
+    return lines.join("\n")
+map_lambda["code"] = map_code
+
+func map_term_call(node):
+    var term = js_repr(node.term)
+    var args = js_repr(node.args)
+    if term == "native":
+        return eval(args)
+    return "{}({})".format(term, args)
+map_lambda["term_call"] = map_term_call
+
+func map_if_chain(node):
+    var buf = []
+    buf.push("if ({})".format(js_repr(node.if_blocks[0].expr)))
+    if (node.if_blocks.length == 1) and (node.else_block == null):
+        buf.push(wrap_block(node.if_blocks[0].block))
+        return buf.join("")
+    else:
+        buf.push(wrap_block(node.if_blocks[0].block, expand=true))
+        for else_if_block in node.if_blocks.slice(1):
+            buf.__iadd__([
+                " else if ({})".format(js_repr(else_if_block.expr)),
+                wrap_block(else_if_block.block, expand=true),
+            ])
+        if node.else_block:
+            buf.__iadd__([
+                " else",
+                wrap_block(node.else_block, expand=true),
+            ])
+        return buf.join("")
+map_lambda["if_chain"] = map_if_chain
+
+func js_repr(node):
+    var type_name = qualname(node.__type__).split(".")[-1].lower()
+    if type_name in map_format:
+        var msg = map_format[type_name]
+        var vars = Map(null)
+        for field in node.__type__.__fields__:
+            var val = getattr(node, field)
+            if (not(field.startswith("__") and field.endswith("__"))) and (not(val.__type__ == BoundMethod)):
+                var s = js_repr(val)
+                vars[field] = s
+        return msg.format(**vars)
+    if type_name in map_lambda:
+        return map_lambda[type_name](node)
+    return code.operators.string(node)
+
+func f(a, b=2):
+    return "xo"
+
+func func_defaults(f):
+    var default_lines = []
+    for arg in f.args:
+        if arg.default_:
+            var default_stmt = (macro if id == null: { id = val }).lines[0]
+            var if_block = default_stmt.tuple.expr.if_chain.if_blocks[0]
+            if_block.expr.expr1.term.id = arg.name
+            if_block.block.lines[0].terms.term.id = arg.name
+            if_block.block.lines[0].assign_chain[0].tuple.expr = arg.default_
+            default_lines.push(default_stmt)
+    return default_lines
+
+func js_func(f, ?name):
+    var args = []
+    for arg in f.args:
+        args.push(arg.name)
+    var block = Code()
+    block.lines = func_defaults(f) + f.code.lines
+    return "function{}({}){}".format(
+        (if name: (" " + name) else: ""),
+        args.join(),
+        wrap_block(block)
+    )
+func wrap_blocks(node, start_block=true, expand=false):
+    return "{}"
+
+print(js_func(f))
+
+class V:
+    var x:Int = 2
+    var y:Int
+
+    func __init__(_y=5):
+        y = _y
+    func sum():
+        return x + y
+
+func js_class(cls):
+    var path = qualname(cls).split(".").join("_")
+
+    var vars = Map(null)
+
+    var var_lines = []
+    for name in cls.__fields__:
+        var field = cls.__fields__[name]
+        if field.__type__ == Var:
+            var var_stmt = (macro this.id = null).lines[0]
+            var_stmt.declares.decl.id = name
+            if field.value:
+                var_stmt.assign_chain[0].tuple = field.value
+            var_lines.push(var_stmt)
+
+    var init = cls.__fields__["__init__"]
+    var init_code = Code()
+    init_code.lines = var_lines + init.code.lines
+    var js_init = Func()
+    js_init.args = init.args.slice(1)
+    js_init.code = init_code
+
+    return "var {} = {}".format(path, js_func(js_init))
+
+print(js_class(V))

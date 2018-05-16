@@ -1,0 +1,66 @@
+class Float2:
+    var x:Float
+    var y:Float
+
+    func __init__(x:Float, y:Float):
+        this.x = x
+        this.y = y
+    func __add__(vec:Float2):
+        return Float2(x + vec.x, y + vec.y)
+    func __mul__(r:Float):
+        return Float2(x * r, y * r)
+
+class Unit:
+    var pos = Float2()
+    var vel = Float2()
+
+class Map:
+    var width:Int
+    var height:Int
+    var grid:List
+
+    func __init__(width:Int, height:Int):
+        this.width = width
+        this.height = height
+        grid = [width * height]
+
+class Physics:
+    var bodies:List
+
+    func resolve():
+        for body in bodies:
+            body.pos = body.pos + body.vel
+
+class Game:
+    var units:List<Unit> = []
+    var map:Map
+
+    var physics = Physics()
+
+    func __init__():
+        physics.bodies = units
+    func update():
+        physics.resolve()
+        for unit in units:
+            if unit.pos.x < 0:
+                unit.pos.x = -unit.pos.x
+                unit.vel.x = -unit.vel.x
+            if unit.pos.y < 0:
+                unit.pos.y = -unit.pos.y
+                unit.vel.y = -unit.vel.y
+
+class ABC:
+    func main():
+        var game = Game()
+        for i in [5, 10, 20]:
+            var unit = Unit()
+            unit.pos = Float2(i, i)
+            unit.vel = Float2(-1, -2)
+            game.units.push(unit)
+        game.map = Map(12, 8)
+
+        for i in [0, 1, 2, 3, 4, 5, 6]:
+            game.update()
+            print("frame:", i)
+            for unit in game.units:
+                print("unit:", unit.pos.x, unit.pos.y)

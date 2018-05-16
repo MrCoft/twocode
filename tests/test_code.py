@@ -1,4 +1,4 @@
-from twocode.Tests import *
+from .testdefs import *
 
 name_tests(
     # file indent

@@ -1,0 +1,14 @@
+func inherit_chain(type:Class)->List:
+    return native("ret(context.inherit_chain(s.type))")
+func inherit_fields(type:Class)->Map:
+    return native("ret(context.inherit_fields(s.type))")
+func inherits(type:Class, attr:String)->Bool:
+    return native("ret(context.inherits(s.type, s.attr))")
+func convert(obj:Object, type:Class)->Object:
+    return native("ret(context.convert(s.obj, s.type))")
+
+for name in """
+    parse eval
+    hasattr getattr setattr
+""".split():
+    eval("var {} = {}".format(name, name))

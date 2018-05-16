@@ -1,4 +1,4 @@
-from twocode.Tests import *
+from .testdefs import *
 
 name_tests(
     # syntax
@@ -149,6 +149,85 @@ name_tests(
 
 
 )
+# >>> f()
+# <Module object>
+# TypeError: <lambda>() missing 1 required positional argument: 'x'
+
+
+# positional, keyword works
+        # unpack list, dict work
+        # they do
+
+        # * can bypass a macro arg
+        # ** too
+
+        # *2 items into macros?
+
+# * accepts any iterable thing
+
+# what are iterable things?
+# actual list
+# something that converts to a list?
+# iterator
+# iterable
+
+# a thing that converts to a list is NOT an iterable
+# but, if you want a list, and list has FROM iterable, and a thing has FROM list?
+
+# sign tests
+
+
+
+
+
+"""
+
+
+func_type_str
+>>> a -> b
+<func Object->Object>
+>>> func(x:Float)->Float: {}
+<func Float->Float>
+
+
+
+>>> ff(f)
+<func ()->()>
+
+<func Float->Float>
+
+
+func f(macro node)
+(macro node)->
+
+
+"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 """
 
@@ -215,11 +294,3 @@ name_tests(
 # thats codebase shit
 
 # precedence so we can safely a -> a + b
-
-
-
-
-"""
->>> a->b
-<func ()->()>
-"""

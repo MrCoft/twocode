@@ -27,7 +27,7 @@ setup(
 
     entry_points = {
         "console_scripts": [
-            "twocode = twocode.Twocode:main",
+            "twocode = twocode:main",
         ],
     },
     install_requires = [],

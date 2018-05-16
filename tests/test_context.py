@@ -1,4 +1,4 @@
-from twocode.Tests import *
+from .testdefs import *
 
 name_tests(
     repr_null = interacts("""
@@ -363,3 +363,30 @@ AttributeError: 'NoneType' object has no attribute '__type__'
 
 #class and func don't return if named
 #var doesn't return anything
+
+"""
+# __iter__, type of node
+# test - (a) does nothing, needs to be (a,)
+# multiple assignment repr test
+        # a, (b, c) += 3, [4, 5]
+
+        # test the exec order thing
+        # a: a + 1
+        # {a + 1: a}
+
+            # bugs: (a,),
+    # what about (a, b)? should be (1, 2)
+    # (a) = (2,) leads to 2
+
+    rich assignment
+"""
+
+
+
+
+    # some test that all types were handled correctly?
+    # check the type correctness in node_types?
+    # assert:
+    # all its vars are types
+    # this along with just traveling the entire codebase
+    # i don't like the parser/code separation

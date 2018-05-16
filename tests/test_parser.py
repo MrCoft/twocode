@@ -1,4 +1,4 @@
-from twocode.Tests import *
+from .testdefs import *
 
 name_tests(
     # lexer
@@ -123,3 +123,7 @@ that a failed stmt does not just insert the contents, or that it makes the next 
 # with block
 # inline if for while
 # try catch
+
+# tests for my parser:
+# empty line 1 parse
+# a + b * c 1 parse

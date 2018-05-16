@@ -1,4 +1,4 @@
-from twocode.Tests import *
+from .testdefs import *
 
 # var x:Float
 # __new__ __default__
@@ -61,3 +61,5 @@ name_tests(
 
 # int or float ** float
 # float and float // -> int
+
+# fix bitwise and, or

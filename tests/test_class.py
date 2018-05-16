@@ -1,4 +1,4 @@
-from twocode.Tests import *
+from .testdefs import *
 
 name_tests(
     # syntax,
@@ -70,3 +70,6 @@ func has none and is on request
 
 # class getattr
 # smells like internals -> getter
+
+# classes now store the frame
+# see local names in a module during initialization
