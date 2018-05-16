@@ -20,9 +20,9 @@ Starts the Twocode console.
 Missing key features such as typing, advanced class fields, transpiler, native implementation.
 
 ### Why code generation?
-Conventional code has a mostly 1-to-1 correspondence between source code and runtime instructions.
-All language features abstract over this, but unless they are programmable, they are limited.
-**_Sometimes the most readable code isn't fast and the fast code isn't readable._**
+Conventional code has a mostly 1-to-1 correspondence between source code and runtime instructions.\
+All language features abstract over this, but unless they are programmable, they are limited.\
+**_Sometimes the most readable code isn't fast and the fast code isn't readable._**\
 Such problems are best modelled by setting up configuration objects, then building code from them.
 
 Examples of problems solved using code generation:
