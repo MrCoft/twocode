@@ -42,6 +42,7 @@ def add_typing(context):
     # constructor - __type_params__
     # T is visible correctly from within
     def type_obj(type):
+        '''Turns a Class object into a ClassType.'''
         # lets absolutely do a obj->string function, for errors everywhere
         # any param can itself be a type object. or maybe it has to be. yes, it has to be.
         # wtf is "type_obj" then
@@ -49,6 +50,9 @@ def add_typing(context):
         # still fail though, you need the instance itself!
         if isinstance(type, context.obj.Ref):
             type = type.__refobj__
+        # next time:
+        # here we check whether it's a class object and turn it into a ClassType
+
         # ClassType, ParamType, FuncType
         context.obj.Object(FuncType, args=args, return_type=return_type)
         # if class, to ClassType
