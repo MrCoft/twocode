@@ -1,0 +1,23 @@
+class IntRange:
+    var min:Int
+    var max:Int
+
+    func __init__(?min:Int, max:Int):
+        this.min = min
+        this.max = max
+
+    func iter():
+        return IntIterator(min, max)
+
+class IntIterator:
+    var pos:Int
+    var max:Int
+
+    func __init__(?min:Int, ?max:Int):
+        pos = min
+        this.max = max
+
+    func has_next():
+        return pos < max
+    func next():
+        return pos++
