@@ -118,13 +118,13 @@ def gen_cond(gen, cond=None):
 def hex(n=64, cond=None):
     return gen_cond(lambda: format(random.getrandbits(n), "x"), conds(lambda id: not id.startswith(tuple("0123456789")), cond))
 
-def free_var(var, scope, suffix_func=lambda n: "_" + str(n)):
-    free_var = var
+def unique_name(name, scope, suffix_func=lambda n: "_" + str(n)):
+    unique_name = name
     n = 2
-    while free_var in scope:
-        free_var = var + suffix_func(n)
+    while unique_name in scope:
+        unique_name = name + suffix_func(n)
         n += 1
-    return free_var
+    return unique_name
 
 def merge_dicts(*dicts):
     result = {}

@@ -276,7 +276,7 @@ func f(macro node)
 
 
 
-
+# func f(a=2, b) is allowed! why not? test that
 
 
 

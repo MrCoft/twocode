@@ -73,7 +73,7 @@ class Grammar:
                 if symbol.list:
                     delim = symbol.list.delim
                     symbol.list = None
-                    list_symbol = utils.free_var(symbol.name + "_list", symbol_scope)
+                    list_symbol = utils.unique_name(symbol.name + "_list", symbol_scope)
                     symbol_scope.add(list_symbol)
                     delim = [delim] if delim else []
                     rls = [
@@ -125,7 +125,7 @@ class Grammar:
             rule_name = str(rule)
             if rule_name in rule_scope:
                 rule.name = "2"
-                rule_name = utils.free_var(str(rule), rule_scope)
+                rule_name = utils.unique_name(str(rule), rule_scope)
                 rule.name = rule_name[len(rule.symbol + "_"):]
             rule_scope.add(rule_name)
     def gen_transform(self, prototype_rules, rules, rule_copies):

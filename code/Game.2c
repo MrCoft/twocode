@@ -2,7 +2,7 @@ class Float2:
     var x:Float
     var y:Float
 
-    func __init__(x:Float, y:Float):
+    func __init__(x:Float=0.0, y:Float=0.0):
         this.x = x
         this.y = y
     func __add__(vec:Float2):

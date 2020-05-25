@@ -1,5 +1,5 @@
 from twocode import utils
-from twocode.utils.code import inline_exc, InlineException
+from twocode.utils.code import inline_exc, InlineException, type_check_decor, type_check
 import os
 from twocode.utils.string import escape
 
@@ -28,14 +28,21 @@ if not os.path.exists(os.path.join(codebase, "__package__.2c")):
         raise Exception("Twocode codebase not found")
 
 def add_scope(context):
+    Object, Ref, Class, Func = [context.obj[name] for name in "Object, Ref, Class, Func".split(", ")]
+    String, Map, NativeIterator = [context.basic_types[name] for name in "String, Map, NativeIterator".split(", ")]
+    w, uw, r, dr, op = [context.type_magic[name] for name in "w, uw, r, dr, op".split(", ")]
+    wraps = context.native_wraps
+
     @inline_exc(TypeError)
-    def declare(name, value, type=None):
-        scope = context.frame[-1]
+    @type_check_decor(value=context.obj.Ref)
+    def declare(name, value, type):
+        type = context.type_obj(type)
+        scope = Ref(context.frame[-1], context.scope_types.Scope)
         impl = context.impl(scope.__type__, "declare")
         if impl:
-            context.call(impl, ([scope, name, value, type], {})) # , inline_exc=True ??
+            context.call(impl, ([scope, name, value, r@ type], {})) # , inline_exc=True ??   to Type
         else:
-            raise InlineException("cannot declare in {}".format(context.unwrap(context.operators.qualname.native(scope.__type__))))
+            raise InlineException("cannot declare in {}".format(op.qualname(scope.__type__)))
     def lookup(path):
         """
             DESIGN:
@@ -44,9 +51,10 @@ def add_scope(context):
             to call that for multiple similiar paths seems redundant,
             but each can be found in a different source
         """
-        env = context.scope.get_env()
-        sources = context.unwrap(env.__sources__) # can't get to it in context, unwrapped
+        env = r(context.scope_types.Env)@ context.scope.get_env()
+        sources = context.AttrWrapper(env).__sources__ # can't get to it in context, unwrapped
         for source in sources:
+            source = uw@ r@ source
             if isinstance(source, str):
                 file = utils.case_path(path, dir=source)
                 if file:
@@ -58,50 +66,44 @@ def add_scope(context):
     def imp(path):
         path = path.split(".")
         try:
-            module = context.frame[0]
+            module = r(context.scope_types.Env)@ context.scope.get_env()
             for i, name in enumerate(path):
                 module = context.call_method(module, "imp", name)
             return module
         except ImportError:
             raise InlineException("no module named {}".format(escape(".".join(path[:i + 1])))) from None
-    for name, instruction in utils.redict(locals(), "context".split()).items():
-        context.__dict__[name] = instruction
-
-    Object, Class, Func, Var = [context.obj[name] for name in "Object, Class, Func, Var".split(", ")]
-    String, Map, NativeIterator = [context.basic_types[name] for name in "String, Map, NativeIterator".split(", ")]
-    wraps = context.native_wraps
+    for name in "declare lookup imp".split():
+        context.__dict__[name] = locals()[name]
 
     context.scope_types = utils.Object()
-    def gen_type(name):
-        type = Class()
-        context.scope_types[name] = type
-        return type
-    def attach(type, name, **kwargs):
+    def gen_class(name):
+        cls = Class()
+        context.scope_types[name] = cls
+        return cls
+    def attach(cls, name, **kwargs):
         def wrap(func):
-            type.__fields__[name] = Func(native=func, **kwargs)
+            cls.__fields__[name] = Func(native=func, **kwargs)
         return wrap
 
     """
         DESIGN:
         Scope
             a variable layer unit, a map of typed slots
-        StackFrame
+        stack frame
             a stack of scope layers
             each layer sees variables at and below itself
             defined mostly by a module path, has an Env at the bottom
-        CallStack
+        call stack
             the call history, swapped out frames
             each stack frame may be in a different module
             has the entry's main and top-level code at the bottom
     """
-    Scope = gen_type("Scope")
-    ObjectScope = gen_type("ObjectScope")
-    StackFrame = gen_type("StackFrame") # has list api
-    CallStack = gen_type("CallStack")
-    # from list
-    Module = gen_type("Module")
+    Var = gen_class("Var")
+    Scope = gen_class("Scope")
+    ObjectScope = gen_class("ObjectScope")
+    Module = gen_class("Module")
     Module.__base__ = Scope
-    Env = gen_type("Env")
+    Env = gen_class("Env")
     Env.__base__ = Module
     Env.__frame__ = []
     # REASON:
@@ -110,53 +112,75 @@ def add_scope(context):
 
     add_vars = context.setup.add_vars
 
+    add_vars(Var, """
+        var value:Object
+        var type:Class
+    """)
     add_vars(ObjectScope, """
         var object:Object
     """)
     add_vars(Module, """
         var __path__:String
         var __file__:String
+        var __defaults__
     """)
     add_vars(Env, """
         var __sources__:List<String> = []
         var __qualnames__:Map<Object,String> = []
     """)
 
+    @attach(Var, "__init__", sign="(this:Var, ?value:Object, type:Class)")
+    def var_init(this, value, type):
+        w_this = context.AttrWrapper(this)
+        w_this.value = value
+        w_this.type = type
     @attach(Scope, "__init__", sign="(this:Scope, ?map:Map)")
     @wraps("map")
     def scope_init(this, map=None):
-        # NOTE: map not a var for speed
+        # OPTIM: map not a var
         if map is None: map = {}
         this.__this__ = map
+    @attach(Scope, "__getitem__", sign="(this:Scope, name:String)->Object")
+    @wraps("name")
+    @inline_exc(KeyError)
+    def scope_getitem(this, name):
+        var = this.__this__.get(name)
+        if var:
+            return Ref(var.value, var.type)
+        raise InlineException()
+    @attach(Scope, "__setitem__", sign="(this:Scope, name:String, value:Object)")
+    @wraps("name")
+    @inline_exc(KeyError)
+    def scope_setitem(this, name, value):
+        var = this.__this__.get(name)
+        if var:
+            var.value = context.convert(value, var.type).__refobj__
+            return
+        raise InlineException()
+    @attach(Scope, "declare", sign="(this:Scope, name:String, value:Object, type:Class)")
+    @wraps("name", "type")
+    def scope_declare(this, name, value, type): # type=None?
+        this.__this__[name] = context.obj.Object(Var, type=type)
+        context.call_method(this, "__setitem__", name, value) # op?
     @attach(Scope, "__getattr__", sign="(this:Scope, name:String)->Object")
     @wraps("name")
     @inline_exc(AttributeError)
     def scope_getattr(this, name):
-        if name in this.__this__:
-            return this.__this__[name].value
+        try:
+            return context.call_method(this, "__getitem__", name)
+        except KeyError:
+            pass
         raise InlineException()
     @attach(Scope, "__setattr__", sign="(this:Scope, name:String, value:Object)")
     @wraps("name")
     @inline_exc(AttributeError)
     def scope_setattr(this, name, value):
-        if name in this.__this__:
-            this.__this__[name].value = value
-            return
+        try:
+            context.call_method(this, "__setitem__", name, value)
+        except KeyError:
+            pass
         raise InlineException()
-    @attach(Scope, "declare", sign="(this:Scope, name:String, value:Object, ?type:Class)")
-    @wraps("name", "type")
-    def scope_declare(this, name, value, type=None):
-        this.__this__[name] = Var(type=type)
-        context.call_method(this, "__setattr__", name, value)
-    @attach(Scope, "__getitem__", sign="(this:Scope, key:String)->Object")
-    @wraps("name")
-    def scope_getitem(this, key):
-        return context.call_method(this, "__getattr__", key)
-    @attach(Scope, "__setitem__", sign="(this:Scope, key:String, value:Object)")
-    @wraps("name")
-    def scope_setitem(this, key, value):
-        context.call_method(this, "__setattr__", key, value)
-    @attach(Scope, "contains", sign="(this:Scope, item:String)->Bool")
+    @attach(Scope, "__contains__", sign="(this:Scope, item:String)->Bool")
     @wraps("item", result=True)
     def scope_contains(this, item):
         return item in this.__this__
@@ -165,71 +189,98 @@ def add_scope(context):
         return Object(NativeIterator, __this__=map(context.wrap, this.__this__))
     @attach(Scope, "values", sign="(this:Scope)->List")
     def scope_values(this):
-        return Object(NativeIterator, __this__=map(lambda name: this.__this__[name].value, this.__this__))
+        return Object(NativeIterator, __this__=map(lambda var: r(var.type)@ var.value, this.__this__.values()))
     @attach(Scope, "items", sign="(this:Scope)->List")
     def scope_items(this):
-        return Object(NativeIterator, __this__=map(lambda name: context.wrap((context.wrap(name), this.__this__[name].value)), this.__this__))
-    # this will bite me. code.keys? can't use certain names, or they create fake variables
+        arg_map = lambda name, var: w@ (w@ name, r(var.type)@ var.value)
+        return Object(NativeIterator, __this__=map(lambda args: arg_map(*args), this.__this__.items()))
     @attach(Scope, "vars", sign="(this:Scope)->Map")
     def scope_vars(this):
         # TODO: to field
-        return context.wrap(this.__this__)
-    @attach(Scope, "iter", sign="(this:Scope)->Iterable")
-    def map_iter(this):
+        return w@ this.__this__
+    @attach(Scope, "__iter__", sign="(this:Scope)->Iterable")
+    def scope_iter(this):
         return context.call_method(this, "keys")
     @attach(ObjectScope, "__init__", sign="(this:ObjectScope, obj:Object)")
     def object_init(this, obj):
-        this.object = obj
-    @attach(ObjectScope, "__getattr__", sign="(this:ObjectScope, name:String)->Object")
+        w_this = context.AttrWrapper(this)
+        w_this.object = obj
+    @attach(ObjectScope, "__getitem__", sign="(this:ObjectScope, name:String)->Object")
     @wraps("name")
-    @inline_exc(AttributeError)
-    def object_getattr(this, name):
+    @inline_exc(KeyError)
+    def object_getitem(this, name):
+        type = this.__type_params__.get(name) # layer by layer? sum of inheritance?
+        if type:
+            return r(context.type_objects.Type)@ type
+        w_this = context.AttrWrapper(this)
         try:
-            return context.getattr(this.object, name, inline_exc=True)
+            return context.getattr(w_this.object, name, inline_exc=True)
         except InlineException:
             pass
         raise InlineException()
-    @attach(ObjectScope, "__setattr__", sign="(this:ObjectScope, name:String, value:Object)")
+    @attach(ObjectScope, "__setitem__", sign="(this:ObjectScope, name:String, value:Object)")
     @wraps("name")
-    @inline_exc(AttributeError)
-    def object_setattr(this, name, value):
+    @inline_exc(KeyError)
+    def object_setitem(this, name, value):
+        type = this.__type_params__.get(name)
+        if type:
+            raise InlineException("cannot set type parameter")
+        w_this = context.AttrWrapper(this)
         try:
-            return context.setattr(this.object, name, value)
-        except AttributeError:
+            return context.setattr(w_this.object, name, value, inline_exc=True)
+        except InlineException:
             pass
         raise InlineException()
-    @attach(ObjectScope, "declare", sign="(this:ObjectScope, name:String, value:Object, ?type)")
+    @attach(ObjectScope, "declare", sign="(this:ObjectScope, name:String, value:Object, type)")
     @wraps("name", "type")
-    @inline_exc(AttributeError)
-    def object_declare(this, name, value, type=None):
-        raise InlineException("cannot declare in object")
+    def object_declare(this, name, value, type):
+        raise TypeError("cannot declare in object")
     @attach(Module, "__init__", sign="(this:Module, ?path:String, ?file:String)") #
     @wraps("path", "file")
     def module_init(this, path=None, file=None, uproot=False):
         context.call(context.impl(Module.__base__, "__init__"), ([this], {}))
-        w_this = context.Wrapper(this)
+        w_this = context.AttrWrapper(this)
         w_this.__path__ = path
         w_this.__file__ = os.path.abspath(file) if file else None
-    @attach(Module, "__getattr__", sign="(this:Module, name:String)->Object") #
+        w_this.__defaults__ = Object(context.scope_types.Scope, __this__={})
+        # NOTE: has to be created directly while creating the Env
+    @attach(Module, "__getitem__", sign="(this:Module, name:String)->Object")
     @wraps("name")
-    @inline_exc(AttributeError)
-    def module_getattr(this, name):
-        if name in this.__this__:
-            return this.__this__[name].value
-        w_this = context.Wrapper(this)
+    @inline_exc(KeyError)
+    def module_getitem(this, name):
+        var = this.__this__.get(name)
+        if var:
+            return r(var.type)@ var.value
+        try:
+            return context.operators.getitem.native(this.__defaults__, name)
+        except KeyError:
+            pass
+        w_this = context.AttrWrapper(this)
         if w_this.__path__ is not None:
             try:
                 return context.call_method(this, "imp", name)
             except ImportError:
                 pass
         raise InlineException()
+    @attach(Module, "__setitem__", sign="(this:Module, name:String, value:Object)")
+    @wraps("name")
+    @inline_exc(KeyError)
+    def module_setitem(this, name, value):
+        var = this.__this__.get(name)
+        if var:
+            var.value = context.convert(value, var.type).__refobj__
+            return
+        if op.contains(this.__defaults__, w@ name):
+            raise TypeError("cannot set defaults")
+        raise InlineException()
     @attach(Module, "imp", sign="(this:Module, name:String)->Object")
     @wraps("name")
     @inline_exc(ImportError)
     def module_imp(this, name):
-        if name in this.__this__:
-            return this.__this__[name].value # weird. otherwise imports delete a module, e.g. code which has all the goodies
-        w_this = context.Wrapper(this)
+        var = this.__this__.get(name)
+        if var:
+            return Ref(var.value, var.type) # weird. otherwise imports delete a module, e.g. code which has all the goodies
+        w_this = context.AttrWrapper(this)
         path = (w_this.__path__.split(".") if w_this.__path__ else []) + [name]
         filepath = os.path.join(*path)
         module = None
@@ -259,17 +310,25 @@ def add_scope(context):
 
                 back: declare
             """
-            module.__path__ = context.wrap(".".join(path))
+            module.__path__ = w@ ".".join(path)
+            module.__defaults__.__this__.update(this.__defaults__.__this__)
 
-            package = context.frame[0] # wat
-            with context.FrameContext([package]):
-                for package_name in path[:-1]:
-                    package = context.getattr(package, package_name)
-                    context.frame.append(package)
-                context.declare(name, module, context.scope_types.Module)
-                context.frame.append(module)
+            package = Ref(context.scope.get_env(), context.scope_types.Scope)
+            with context.FrameContext([package.__refobj__]):
+                if len(path) >= 2:
+                    package = context.operators.getitem.native(package, path[0])
+                    context.frame.append(package.__refobj__)
+                    for package_name in path[1:-1]:
+                        package = context.operators.getitem.native(package, package_name)
+                        context.frame[-1] = package.__refobj__
+                    context.declare(name, module, module.__reftype__)
+                    context.frame[-1] = module.__refobj__
+                else:
+                    context.declare(name, module, module.__reftype__)
+                    context.frame.append(module.__refobj__)
+
                 if filename:
-                    context.declare("__file__", context.wrap(filename), String)
+                    context.declare("__file__", w@ filename, String)
                     ast = context.parse(open(filename, encoding="utf-8").read())
                     #try:
                     context.eval(ast, type="stmt")
@@ -282,34 +341,34 @@ def add_scope(context):
                 return module
         else:
             raise InlineException("no module named {}".format(escape(".".join(path)))) from None
-    @attach(Module, "declare", sign="(this:Module, name:String, value:Object, ?type:Class)")
+    @attach(Module, "declare", sign="(this:Module, name:String, value:Object, type:Class)")
     @wraps("name")
-    def module_declare(this, name, value, type=None):
-        w_this = context.Wrapper(this)
-        if context.objects.Class in context.inherit_chain(value.__type__):
-            qualname = context.unwrap(context.operators.qualname.native(value))
+    def module_declare(this, name, value, type):
+        w_this = context.AttrWrapper(this)
+        if context.extends(value.__type__, context.objects.Class):
+            qualname = op.qualname(value)
             if qualname is None:
                 qualnames = context.scope.get_env().__qualnames__
-                context.call_method(qualnames, "__setitem__", value, (w_this.__path__ + "." if w_this.__path__ else "") + name)
+                op.setitem(r@ qualnames, value, w@ ((w_this.__path__ + "." if w_this.__path__ else "") + name))
         context.call(context.impl(Module.__base__, "declare"), ([this, name, value, type], {}))
     @attach(Env, "__init__", sign="(this:Env)")
     def env_init(this):
         context.call(context.impl(Env.__base__, "__init__"), ([this, ""], {}))
         sources = []
         qualnames = {}
-        for name, obj in context.unwrap(context.call_method(this, "builtins")).items():
+        for name, obj in (uw@ context.call_method(this, "builtins")).items():
             # NOTE:
             # builtins do not have special access, their qualnames become invalid if you override them
             # NOTE:
             # declare would use qualname, which would look up the frame[0] Env
             # the purpose of this is to register them here
-            if context.objects.Class in context.inherit_chain(obj.__type__):
-                qualnames[context.hash(obj)] = name
-            this.__this__[name] = Var(obj)
+            if context.extends(obj.__type__, context.objects.Class):
+                qualnames[op.hash(r@ obj)] = (w@ name).__refobj__
+            this.__this__[name] = context.obj.Object(Var, value=obj, type=obj.__type__) # refobj
 
-        sources.append(codebase)
+        sources.append((w@ codebase).__refobj__)
 
-        w_this = context.Wrapper(this)
+        w_this = context.AttrWrapper(this)
         w_this.__sources__ = sources
         w_this.__qualnames__ = qualnames
     @attach(Env, "builtins", sign="(this:Env)->Map")
@@ -325,6 +384,9 @@ def scope_builtins(context):
         builtins = {}
         for types_name in "objects basic_types scope_types exc_types builtins".split():
             types = getattr(context, types_name, None)
+            # REASON:
+            # while incomplete during setup, TempScope looks here
+            # to resolve names such as objects and basic types
             if types:
                 builtins.update(types)
         if hasattr(context, "operators"):
@@ -341,24 +403,22 @@ def scope_builtins(context):
         return builtins
     context.get_builtins = get_builtins
 
-def scope_types(context):
-    code = context.imp("code")
-    declare = context.impl(context.scope_types.Module, "declare")
-    def place_types(types_name, module_name=None):
-        if module_name is None: module_name = types_name
-        module = context.construct(context.scope_types.Module, (["code.{}".format(module_name)], {}))
-        context.call(declare, ([code, module_name, module], {}))
-        for name, obj in getattr(context, types_name).items():
-            context.call(declare, ([module, name, obj], {}))
-    place_types("objects")
-    place_types("basic_types")
-    place_types("operators")
-    place_types("node_types")
-    place_types("scope_types", "scope")
-    place_types("exc_types", "exc")
-    place_types("builtins")
+"""
+    DESIGN NOTE:
+
+    We used to place types into the initial Env.
+
+    This is wrong, because now class discovery in this Env
+    finds e.g. all node types. It wouldn't find them
+    in a new Env, where we can't access code.node_types at all
+    because they don't exist.
+    The only solution is to link these manually
+    in the standard library.
+"""
 
 def init_scope(context):
+    w, uw, r, dr = [context.type_magic[name] for name in "w, uw, r, dr".split(", ")]
+
     class FrameScope:
         def __init__(self):
             self.frame = []
@@ -369,16 +429,16 @@ def init_scope(context):
                 return False
             else:
                 return True
-            # string and ai cause error/loop
         @inline_exc(NameError) # KeyError?
         def __getitem__(self, name):
             for scope in reversed(self.frame):
-                impl = context.impl(scope.__type__, "__getattr__")
+                scope = r(context.scope_types.Scope)@ scope
+                impl = context.impl(scope.__type__, "__getitem__")
                 if not impl:
                     continue
                 try:
                     return context.call(impl, ([scope, name], {})) # , inline_exc=True
-                except AttributeError:
+                except KeyError:
                     pass
                 if name == "this":
                     if scope.__type__ is context.scope_types.ObjectScope:
@@ -387,12 +447,13 @@ def init_scope(context):
         @inline_exc(NameError)
         def __setitem__(self, name, value):
             for scope in reversed(self.frame):
-                impl = context.impl(scope.__type__, "__setattr__")
+                scope = r(context.scope_types.Scope)@ scope
+                impl = context.impl(scope.__type__, "__setitem__")
                 if not impl:
                     continue
                 try:
                     return context.call(impl, ([scope, name, value], {})) # , inline_exc=True
-                except AttributeError:
+                except KeyError:
                     pass
                 if name == "this":
                     if scope.__type__ is context.scope_types.ObjectScope:
@@ -402,7 +463,9 @@ def init_scope(context):
             return self.frame.copy()
             # REASON: closure of signatures, abstracted for setup
         def get_env(self):
-            return self.frame[0]
+            env = self.frame[0]
+            type_check(env, context.obj.Ref.Object)
+            return env
             # REASON: frame[0] instead of stack[0][0] gets the CURRENT environment
     context.FrameScope = FrameScope
     class ScopeContext(utils.Context):
@@ -413,6 +476,8 @@ def init_scope(context):
     context.ScopeContext = ScopeContext
     class FrameContext(utils.Context):
         def __init__(self, frame):
+            for scope in frame:
+                type_check(scope, context.obj.Ref.Object)
             self.frame = frame
         def __enter__(self):
             context.stack.append(context.frame)
@@ -429,12 +494,13 @@ def init_scope(context):
     context.stack = []
 
     env = context.construct(context.scope_types.Env, ([], {}))
-    env.name = context.wrap("<env>")
-    context.frame.append(env)
+    env.name = w@ "<env>"
+    context.frame.append(env.__refobj__)
 
-def add_ref(context):
-    ref = utils.Object()
-    context.ref = ref
-    def ref_type(path):
-        ref[path.split(".")[-1]] = context.imp(path)
-    # ref_type("code.iter.IntIterator")
+    # SCOPE: add std lib
+    std_lib = utils.Object()
+    context.std_lib = std_lib
+    def imp_type(path):
+        std_lib[path.split(".")[-1]] = context.imp(path)
+    imp_type("code.iter.IntIterator")
+    imp_type("code.native.NativeObject")

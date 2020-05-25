@@ -4,6 +4,9 @@ import twocode.utils.string
 import builtins
 import copy
 import textwrap
+import re
+from twocode.utils.code import type_check
+from twocode.utils.interface import preview
 
 literal_eval = {
     "null": lambda value: None,
@@ -13,62 +16,130 @@ literal_eval = {
     "string": lambda value: value,
 }
 
-def add_basics(context):
+def add_basic_types(context):
     Class, Func, Arg, BoundMethod = [context.obj[name] for name in "Class, Func, Arg, BoundMethod".split(", ")]
+    w, uw, r, dr, op = [context.type_magic[name] for name in "w, uw, r, dr, op".split(", ")]
     wraps = context.native_wraps
 
     context.basic_types = utils.Object()
-    def gen_type(name):
-        type = Class()
-        context.basic_types[name] = type
-        return type
-    def attach(type, name, **kwargs):
+    def gen_class(name):
+        cls = Class()
+        context.basic_types[name] = cls
+        return cls
+    def attach(cls, name, **kwargs):
         def wrap(func):
-            type.__fields__[name] = Func(native=func, **kwargs)
+            cls.__fields__[name] = Func(native=func, **kwargs)
         return wrap
 
-    Object = gen_type("Object")
-    Null = gen_type("Null")
+    Object = gen_class("Object")
+    Null = gen_class("Null")
 
-    Bool = gen_type("Bool")
-    Float = gen_type("Float")
-    Int = gen_type("Int")
-    String = gen_type("String")
-    List = gen_type("List")
-    Array = gen_type("Array")
-    Tuple = gen_type("Tuple")
-    Map = gen_type("Map")
-    Set = gen_type("Set")
-    Dynamic = gen_type("Dynamic")
+    Bool = gen_class("Bool")
+    Float = gen_class("Float")
+    Int = gen_class("Int")
+    String = gen_class("String")
+    List = gen_class("List")
+    Array = gen_class("Array")
+    Tuple = gen_class("Tuple")
+    Map = gen_class("Map")
+    Set = gen_class("Set")
+    Dynamic = gen_class("Dynamic")
 
     direct = lambda obj: obj.__this__
+    direct_copy = lambda obj: obj.__this__.copy()
     unwrap_map = {
         Null: lambda obj: None,
         Bool: direct,
         Float: direct,
         Int: direct,
         String: direct,
-        List: direct,
-        Array: direct,
+        List: direct_copy,
+        Array: direct_copy,
         Tuple: lambda obj: tuple(obj.__this__),
-        Map: lambda obj: {context.unwrap(obj._keymap[hash]): obj.__this__[hash] for hash in obj.__this__},
-        Set: direct,
+        Map: lambda obj: {uw@ r@ obj._keymap[hash]: obj.__this__[hash] for hash in obj.__this__}, # to param
+        Set: direct_copy,
     }
-    direct = lambda type: lambda obj: context.obj.Object(type, __this__=obj)
+    direct = lambda cls: lambda obj: context.obj.Object(cls, __this__=obj)
+    direct_copy = lambda cls: lambda obj: context.obj.Object(cls, __this__=obj.copy())
     wrap_map = {
         builtins.type(None): lambda obj: context.obj.Object(Null),
         bool: direct(Bool),
         float: direct(Float),
         int: direct(Int),
         str: direct(String),
-        list: direct(List),
         tuple: lambda obj: context.obj.Object(Tuple, __this__=list(obj)),
-        dict: lambda obj: context.obj.Object(Map,
-            __this__={context.hash(context.wrap(key)): obj[key] for key in obj},
-            _keymap={context.hash(context.wrap(key)): context.wrap(key) for key in obj},
-        ),
-        set: direct(Set),
+        set: direct_copy,
     }
+    def wrap_func_list(obj):
+        try:
+            w_obj = []
+            for item in obj:
+                type_check(item, context.obj.Ref.Object)
+                w_obj.append(item)
+            return context.obj.Object(List, __this__=w_obj)
+        except TypeError:
+            obj_str = context.safe_repr(item)
+            error_str = "is a Ref" if isinstance(item, context.obj.Ref) else "isn't wrapped"
+            items_str = []
+            for item in obj:
+                s = context.safe_repr(item)
+                s = preview(s, 15, rstrip=True)
+                items_str.append(s)
+            list_str = iter_str(items_str)
+            msg = "error wrapping list [{}], value {} {}".format(list_str, obj_str, error_str)
+            raise Exception(msg) from None
+    wrap_map[list] = wrap_func_list
+    def wrap_func_map(obj):
+        try:
+            w_obj = {}
+            keymap = {}
+            for key, value in obj.items():
+                type_check(value, context.obj.Ref.Object)
+                w_key = w@ key
+                hash = op.hash(w_key)
+                w_obj[hash] = value
+                keymap[hash] = w_key.__refobj__
+            return context.obj.Object(Map, __this__=w_obj, _keymap=keymap)
+        except TypeError:
+            obj_str = context.safe_repr(value)
+            key_str = context.safe_repr(w@ key)
+            error_str = "is a Ref" if isinstance(value, context.obj.Ref) else "isn't wrapped"
+            items_str = []
+            for key, value in obj.items():
+                key_s = context.safe_repr(w@ key)
+                value_s = context.safe_repr(value)
+                key_s = preview(key_s, 15, rstrip=True)
+                value_s = preview(value_s, 15, rstrip=True)
+                s = "{}: {}".format(key_s, value_s)
+                items_str.append(s)
+            map_str = iter_str(items_str)
+            msg = "error wrapping map {{{}}}, value {} at {} {}".format(map_str, obj_str, key_str, error_str)
+            raise Exception(msg) from None
+    wrap_map[dict] = wrap_func_map
+    def iter_str(items_str):
+        iter_str = ", ".join(items_str)
+        if len(iter_str) >= 63:
+            lines = []
+            line = ""
+            width = 80 - 4
+            for i, s in enumerate(items_str):
+                if i < len(items_str) - 1:
+                    s += ","
+                if len(lines) >= 4:
+                    line = lines[-1] + " " + s
+                    line = preview(line, width, rstrip=True)
+                    lines[-1] = line
+                    break
+                if len(line + " " + s) <= width:
+                    if line:
+                        line += " "
+                    line += s
+                else:
+                    lines.append(line)
+                    line = s
+            return "\n{}\n".format("\n".join(" " * 4 + line for line in lines))
+        else:
+            return iter_str
     """
         REASON:
         the wraps' purpose is to call them on objects that might or might not be wrapped
@@ -90,14 +161,15 @@ def add_basics(context):
         child types might introduce new variables
         but base implementations still only want to see the unwrapped __this__
     """
-
     def unwrap(obj):
-        if not hasattr(obj, "__type__"):
+        if isinstance(obj, context.obj.Ref.Object):
+            type_check(obj, context.obj.Ref)
+        if not isinstance(obj, context.obj.Ref):
             return obj
         # the slot means typing. an object and type...
-        type = context.inherit_chain(obj.__type__)[0]
-        if type in unwrap_map:
-            return unwrap_map[type](obj)
+        cls = context.inherit_chain(obj.__type__)[0]
+        if cls in unwrap_map:
+            return unwrap_map[cls](obj)
         return obj
     context.unwrap = unwrap
     def wrap(obj):
@@ -107,26 +179,17 @@ def add_basics(context):
         return obj
     context.wrap = wrap
 
-    class Wrapper:
-        def __init__(self, obj):
-            self.__dict__["obj"] = obj
-        def __getattr__(self, name):
-            return context.unwrap(getattr(self.obj, name))
-        def __setattr__(self, name, value):
-            setattr(self.obj, name, context.wrap(value))
-    context.Wrapper = Wrapper
-
-    def pass_init(type, default):
+    def pass_init(cls, default):
         """
             Bool, Float, Int, String have non-null default values
             init constructs all types properly (copy.copy works on floats)
         """
         nullable = hasattr(default, "copy")
         if not nullable:
-            @attach(type, "__default__", return_type=type)
+            @attach(cls, "__default__", return_type=cls) # cls is not a type
             def __default__():
-                return context.obj.Object(type, __this__=default)
-        @attach(type, "__init__", args=[Arg("this", type), Arg("val", Object, default_=context.parse("null"))])
+                return context.obj.Object(cls, __this__=copy.copy(default)) # not a type
+        @attach(cls, "__init__", args=[Arg("this", cls), Arg("val", Object, default_=context.parse("null"))]) # not a type
         @wraps("val")
         def init(this, val=None):
             if val is None: val = copy.copy(default)
@@ -150,55 +213,55 @@ def add_basics(context):
         this._keymap = {}
         for args in val, kwargs:
             for key, value in args.items():
-                key = context.wrap(key)
-                h = context.hash(key)
-                this.__this__[h] = value
-                this._keymap[h] = key
+                key = w@ key
+                h = op.hash(key)
+                this.__this__[h] = value.__refobj__
+                this._keymap[h] = key.__refobj__
 
-    def pass_repr(type, func):
-        type.__fields__["repr"] = Func(native=lambda obj: context.wrap(func(obj)), args=[Arg("this", type)], return_type=String)
+    def pass_repr(cls, func):
+        cls.__fields__["__repr__"] = Func(native=lambda obj: w@ func(obj), args=[Arg("this", cls)], return_type=String)
     pass_repr(Null, lambda obj: "null")
     # object repr to itself
     pass_repr(Bool, lambda obj: "true" if obj.__this__ else "false")
     pass_repr(Float, lambda obj: repr(obj.__this__))
     pass_repr(Int, lambda obj: repr(obj.__this__))
     pass_repr(String, lambda obj: twocode.utils.string.escape(obj.__this__))
-    pass_repr(List, lambda obj: "[{}]".format(", ".join(context.unwrap(context.operators.repr.native(item)) for item in obj.__this__)))
-    pass_repr(Array, lambda obj: "@Array.literal [{}]".format(", ".join(context.unwrap(context.operators.repr.native(item)) for item in obj.__this__)))
-    pass_repr(Set, lambda obj: "@Set.literal [{}]".format(", ".join(context.unwrap(context.operators.repr.native(item)) for item in obj.__this__)))
-    @attach(Tuple, "repr", sign="(this:Tuple)->String")
+    pass_repr(List, lambda obj: "[{}]".format(", ".join(op.repr(r@ item) for item in obj.__this__)))
+    pass_repr(Array, lambda obj: "@Array.literal [{}]".format(", ".join(op.repr(r@ item) for item in obj.__this__)))
+    pass_repr(Set, lambda obj: "@Set.literal [{}]".format(", ".join(op.repr(r@ item) for item in obj.__this__)))
+    @attach(Tuple, "__repr__", sign="(this:Tuple)->String")
     @wraps("this", result=True)
     def tuple_repr(this):
         if not this:
             return "()"
         if len(this) == 1:
-            return "({},)".format(context.unwrap(context.operators.repr.native(this[0])))
+            return "({},)".format(op.repr(r@ this[0]))
         else:
-            return "({})".format(", ".join(context.unwrap(context.operators.repr.native(item)) for item in this))
-    @attach(Map, "repr", sign="(this:Map)->String")
+            return "({})".format(", ".join(op.repr(r@ item) for item in this))
+    @attach(Map, "__repr__", sign="(this:Map)->String")
     @wraps(result=True)
     def map_repr(this):
         if not this.__this__:
             return "Map()"
         return "[{}]".format(", ".join("{}: {}".format(
-            context.unwrap(context.operators.repr.native(this._keymap[hash])),
-            context.unwrap(context.operators.repr.native(this.__this__[hash])))
+            op.repr(r@ this._keymap[hash]),
+            op.repr(r@ this.__this__[hash]))
         for hash in this.__this__))
 
-    for type in Bool, Float, Int, String:
-        @attach(type, "hash", args=[Arg("this", type)], return_type=Int)
+    for cls in Bool, Float, Int, String:
+        @attach(cls, "__hash__", args=[Arg("this", cls)], return_type=Int)
         @wraps("this", result=True)
         def gen_hash(this):
             return builtins.hash(this)
-    @attach(Null, "hash", sign="(this:Null)->Int")
+    @attach(Null, "__hash__", sign="(this:Null)->Int")
     @wraps("this", result=True)
     def null_hash(this):
         raise TypeError("unhashable type: {}".format(twocode.utils.string.escape("Null")))
     # tuple hash - you can't modify keys. it would have to somehow set a copy as the key
 
-    def pass_from(type):
+    def pass_from(cls):
         def wrap(func):
-            type.__fields__["__from__"] = Func(native=func, args=[Arg("obj", Object)], return_type=type)
+            cls.__fields__["__from__"] = Func(native=func, args=[Arg("obj", Object)], return_type=cls)
         return wrap
     @pass_from(Object)
     def object_from(obj):
@@ -216,25 +279,36 @@ def add_basics(context):
     def string_from(obj):
         return context.operators.string.native(obj)
 
-    def pass_bool(type):
-        @attach(type, "__to__", args=[Arg("obj", type), Arg("type", context.objects.Class)], return_type=Object)
+    def pass_bool(cls):
+        @attach(cls, "__to__", args=[Arg("obj", cls), Arg("type", context.objects.Class)], return_type=Object)
         @wraps("this", result=True)
-        def to(this, type):
-            if type is Bool:
+        def to(this, cls):
+            if cls is Bool:
                 return bool(this)
             raise TypeError()
-    for type in Float, Int, String, List, Array, Tuple, Map, Set, Dynamic:
-        pass_bool(type)
+    for cls in Float, Int, String, List, Array, Tuple, Map, Set, Dynamic:
+        pass_bool(cls)
 
     ops = utils.merge_dicts(*(utils.invert_dict(dict) for dict in [op_math, op_compare, op_unary, op_assign]))
-    def pass_op(type, name, b_type=None, return_type=None):
+    def pass_op(cls, name, b_type=None, return_type=None):
         op = ops[name]
-        func = Func(native=(lambda a, b: context.wrap(eval("context.unwrap(a) {} context.unwrap(b)".format(op)))) if b_type else lambda a: context.wrap(eval("{}context.unwrap(a)".format(op))))
-        func.args = [Arg("a", type)]
+        if b_type:
+            code = "context.unwrap(a) {} context.unwrap(b)".format(op)
+            def native_op(a, b):
+                nonlocal context
+                return w@ eval(code)
+        else:
+            code = "{}context.unwrap(a)".format(op)
+            def native_op(a):
+                nonlocal context
+                return w@ eval(code)
+        code = compile(code, "<op>", "eval")
+        func = Func(native=native_op)
+        func.args = [Arg("a", cls)]
         if b_type:
             func.args.append(Arg("b", b_type))
         func.return_type = return_type
-        type.__fields__["__{}__".format(name)] = func
+        cls.__fields__["__{}__".format(name)] = func
 
     for group in [
         utils.redict(op_math, add="+ - * / **".split()),
@@ -258,22 +332,22 @@ def add_basics(context):
     for symbol, name in op_unary.items():
         pass_op(Int, name, return_type=Int)
 
-    for type in Null, Bool, Float, Int, String:
-        pass_op(type, "eq", type, Bool)
+    for cls in Null, Bool, Float, Int, String:
+        pass_op(cls, "eq", cls, Bool)
 
-    for type in String, List, Array, Tuple:
+    for cls in String, List, Array, Tuple:
         for args in [
-            ("add", type, type),
-            ("mul", Int, type),
+            ("add", cls, cls),
+            ("mul", Int, cls),
         ]:
-            pass_op(type, *args)
-    for type in List, Set:
+            pass_op(cls, *args)
+    for cls in List, Set:
         for args in [
-            ("and", type, type),
-            ("or", type, type),
-            ("xor", type, type),
+            ("and", cls, cls),
+            ("or", cls, cls),
+            ("xor", cls, cls),
         ]:
-            pass_op(type, *args)
+            pass_op(cls, *args)
 
     @wraps("a", "b", result=True)
     def list_eq(a, b):
@@ -283,16 +357,16 @@ def add_basics(context):
         if not a_len:
             return True
         for item1, item2 in zip(a, b):
-            if not context.unwrap(context.operators.eq.native(item1, item2)):
+            if not op.eq(r@ item1, r@ item2):
                 return False
         return True
-    def pass_eq(type):
+    def pass_eq(cls):
         func = Func(native=list_eq)
-        func.args = [Arg("a", type), Arg("b", type)]
+        func.args = [Arg("a", cls), Arg("b", cls)]
         func.return_type = Bool
-        type.__fields__["__eq__"] = func
-    for type in List, Array, Tuple:
-        pass_eq(type)
+        cls.__fields__["__eq__"] = func
+    for cls in List, Array, Tuple:
+        pass_eq(cls)
     @attach(Map, "__eq__", sign="(a:Map, b:Map)->Bool")
     @wraps(result=True)
     def map_eq(a, b):
@@ -319,9 +393,9 @@ def add_basics(context):
         for hash in a.__this__:
             if not (hash in a._keymap and hash in b.__this__ and hash in b._keymap):
                 return False
-            if not context.unwrap(context.operators.eq.native(a._keymap[hash], b._keymap[hash])):
+            if not op.eq(r@ a._keymap[hash], r@ b._keymap[hash]):
                 return False
-            if not context.unwrap(context.operators.eq.native(a.__this__[hash], b.__this__[hash])):
+            if not op.eq(r@ a.__this__[hash], r@ b.__this__[hash], Object):
                 return False
         return True
     @attach(Set, "__eq__", sign="(a:Set, b:Set)->Bool")
@@ -333,7 +407,7 @@ def add_basics(context):
         if not a_len:
             return True
         for item in b:
-            if not context.unwrap(context.operators.contains.native(a, item)):
+            if not op.eq(r@ a, r@ item):
                 return False
         return True
 
@@ -359,49 +433,53 @@ def add_basics(context):
 
     @wraps("key")
     def getitem(this, key):
-        return this.__this__[key]
+        if isinstance(key, context.obj.Ref):
+            key = key.__refobj__
+        return r@ this.__this__[key]
     @wraps("key")
     def setitem(this, key, value):
-        this.__this__[key] = value
-    def pass_key(type, key_type, value_type):
-        type.__fields__["__getitem__"] = Func(native=getitem, args=[
-            Arg("this", type),
+        if isinstance(key, context.obj.Ref):
+            key = key.__refobj__
+        this.__this__[key] = value.__refobj__
+    def pass_key(cls, key_type, value_type):
+        cls.__fields__["__getitem__"] = Func(native=getitem, args=[
+            Arg("this", cls),
             Arg("key", key_type),
         ], return_type=value_type)
-        type.__fields__["__setitem__"] = Func(native=setitem, args=[
-            Arg("this", type),
+        cls.__fields__["__setitem__"] = Func(native=setitem, args=[
+            Arg("this", cls),
             Arg("key", key_type),
             Arg("value", value_type),
         ])
     # name -> name<T>
-    for type in List, Array, Tuple:
-        pass_key(type, Int, None)
+    for cls in List, Array, Tuple:
+        pass_key(cls, Int, None)
 
     #K, V
     @attach(Map, "__getitem__", sign="(this:Map, key)")
     def map_getitem(this, key):
-        return this.__this__[context.hash(key)]
+        return r@ this.__this__[op.hash(key)]
     @attach(Map, "__setitem__", sign="(this:Map, key, value)")
     def map_setitem(this, key, value):
-        h = context.hash(key)
-        this.__this__[h] = value
-        this._keymap[h] = key
+        h = op.hash(key)
+        this.__this__[h] = value.__refobj__
+        this._keymap[h] = key.__refobj__
     # impl
     ###
     @attach(Dynamic, "__getattr__", sign="(this:Dynamic, name:String)->Object")
     @wraps("name")
     def dynamic_getattr(this, name):
-        return this.__this__[name]
+        return r@ this.__this__[name]
     @attach(Dynamic, "__setattr__", sign="(this:Dynamic, name:String, value:Object)")
     @wraps("name")
     def dynamic_setattr(this, name, value):
-        this.__this__[name] = value
+        this.__this__[name] = value.__refobj__
 
-    def pass_method(type, name, signature, rename=None):
+    def pass_method(cls, name, signature, rename=None):
         if rename is None: rename = name
         method = Func(native=lambda this, *args, **kwargs: getattr(this.__this__, name)(*args, **kwargs), sign=signature)
-        method.args.insert(0, Arg("this", type))
-        type.__fields__[rename] = method
+        method.args.insert(0, Arg("this", cls))
+        cls.__fields__[rename] = method
     for args in """
         format (*iter:Iter<String>)->String
         join (iter:Iter<String>)->String
@@ -418,20 +496,20 @@ def add_basics(context):
     """.strip().splitlines(): # <K> <V> <Tuple<K,V>>
         pass_method(Map, *args.split())
 
-    @attach(List, "contains", sign="(this:List, item)->Bool") # <T>, T
+    @attach(List, "__contains__", sign="(this:List, item)->Bool") # <T>, T
     @wraps("this", result=True)
     def list_contains(this, item):
         # impl of type param?
         for it in this:
-            if context.unwrap(context.operators.eq.native(item, it)):
+            if op.eq(item, r@ it):
                 return True
         return False
 
-    @attach(Map, "contains", sign="(this:Map, item)->Bool") # <K,V>, K
+    @attach(Map, "__contains__", sign="(this:Map, item)->Bool") # <K,V>, K
     @wraps(result=True)
     def map_contains(this, item):
         for it in this._keymap.values():
-            if context.unwrap(context.operators.eq.native(item, it)):
+            if op.eq (item, r@ it):
                 return True
         return False
 
@@ -444,7 +522,7 @@ def add_basics(context):
     @attach(Map, "items", sign="(this:Map)->Iter<Tuple>") # <K,V>
     # <K,V>
     def map_items(this):
-        return context.obj.Object(NativeIterator, __this__=map(lambda hash: context.wrap((this._keymap[hash], this.__this__[hash])), this.__this__))
+        return context.obj.Object(NativeIterator, __this__=map(lambda hash: w@ (this._keymap[hash], this.__this__[hash]), this.__this__))
 
     @attach(String, "length", sign="(this:String)->Int")
     @wraps("this", result=True)
@@ -458,26 +536,6 @@ def add_basics(context):
     @wraps("this", result=True) # Map to Dict?
     def map_length(this):
         return len(this._keymap)
-
-    @wraps("key")
-    def getitem(this, key):
-        return this.__this__[key]
-    @wraps("key")
-    def setitem(this, key, value):
-        this.__this__[key] = value
-    def pass_key(type, key_type, value_type):
-        type.__fields__["__getitem__"] = Func(native=getitem, args=[
-            Arg("this", type),
-            Arg("key", key_type),
-        ], return_type=value_type)
-        type.__fields__["__setitem__"] = Func(native=setitem, args=[
-            Arg("this", type),
-            Arg("key", key_type),
-            Arg("value", value_type),
-        ])
-    # name -> name<T>
-    for type in List, Array, Tuple:
-        pass_key(type, Int, None)
 
     @attach(String, "__getitem__", sign="(this:String, key:Int)->String")
     @wraps("key", result=True)
@@ -497,17 +555,22 @@ def add_basics(context):
         ###
         # eventually to an iterator functor thing?
         # IteratorFunc
-        return [context.wrap(part) for part in this.split(sep)]
+        return [w@ part for part in this.split(sep)]
     @attach(String, "splitlines", sign="(this:String, keepends:Bool=false)->List<String>")
     @wraps("this", "keepends", result=True)
     def string_splitlines(this, keepends=False):
-        return [context.wrap(part) for part in this.splitlines(keepends)]
+        return [(w@ part).__refobj__ for part in this.splitlines(keepends)]
+    @attach(String, "splitline", sign="(this:String)->String")
+    @wraps("this", result=True)
+    def string_splitline(this):
+        return (w@ line_pattern.match(this)).group()
+    line_pattern = re.compile("^(.*)$", re.M)
 
     @attach(String, "format", sign="(this:String, *args:String, **kwargs:String)->String")
     @wraps("this", result=True)
     def string_format(this, *args, **kwargs):
-        args = [context.unwrap(context.operators.string.native(item)) for item in args]
-        kwargs = {key: context.unwrap(context.operators.string.native(value)) for key, value in kwargs.items()}
+        args = [op.string(r@ item) for item in args]
+        kwargs = {key: op.string(r@ value) for key, value in kwargs.items()}
         # unnecessary conversion once typing works
         return this.format(*args, **kwargs)
 
@@ -560,7 +623,7 @@ def add_basics(context):
         # should be iterator
         # a time graph - find appropriate scale, show times (0->1.0)
         # 125% of their max
-        items = (context.unwrap(context.operators.string.native(item)) for item in this)
+        items = (op.string(r@ item) for item in this)
         return sep.join(items)
     @attach(List, "slice", sign="(this:List<T>, pos:Int, ?end:Int)->List<T>")
     @wraps("this", "pos", "end", result=True)
@@ -574,29 +637,32 @@ def add_basics(context):
     def list_from_iter(iter):
         has_next = context.impl(iter.__type__, "has_next")
         next = context.impl(iter.__type__, "next") # op this too?
-        has_next = BoundMethod(iter, has_next)
-        next = BoundMethod(iter, next)
+        has_next = r(context.objects.BoundMethod)@ BoundMethod(iter, has_next)
+        next = r(context.objects.BoundMethod)@ BoundMethod(iter, next)
         list = []
         while True:
-            cond = context.call(has_next, ([], {}))
-            cond = context.unwrap(cond)
+            cond = uw@ context.call(has_next, ([], {}))
             if not cond:
                 break
             item = context.call(next, ([], {}))
-            list.append(item)
+            list.append(item.__refobj__)
         return list
 
-    @attach(List, "iter", sign="(this:List<T>)->Iterable<T>")
+    @attach(List, "__iter__", sign="(this:List<T>)->Iterable<T>")
     @wraps("this")
     def list_iter(this):
         return context.obj.Object(NativeIterator, __this__=iter(this))
     # temporary
-    @attach(Map, "iter", sign="(this:Map<K,V>)->Iterable<K>")
+    @attach(Map, "__iter__", sign="(this:Map<K,V>)->Iterable<K>")
     def map_iter(this):
         return context.call_method(this, "keys")
-    @attach(Tuple, "iter", sign="(this:Tuple<T>)->Iterable<T>")
+    @attach(Tuple, "__iter__", sign="(this:Tuple<T>)->Iterable<T>")
     @wraps("this")
     def tuple_iter(this):
+        return context.obj.Object(NativeIterator, __this__=iter(this))
+    @attach(String, "__iter__", sign="(this:String)->Iterable<String>")
+    @wraps("this")
+    def string_iter(this):
         return context.obj.Object(NativeIterator, __this__=iter(this))
 
     NativeIterator = Class()
@@ -613,7 +679,7 @@ def add_basics(context):
             return True
     @attach(NativeIterator, "next", sign="(this:NativeIterator)") #T
     def nativeiterator_next(this):
-        return this._item
+        return r@ this._item
     def unwrap_iter(iter):
         has_next = context.impl(iter.__type__, "has_next")
         next = context.impl(iter.__type__, "next")

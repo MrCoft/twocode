@@ -1,6 +1,8 @@
 from twocode import utils
 import io
 
+DEFAULT_WIDTH = 79
+
 def shared_str(s1, s2):
     len = 0
     for c1, c2 in zip(s1, s2):
@@ -70,11 +72,16 @@ def dedent(text):
     return "\n".join(line[min_len:] for line in text.splitlines())
 
 escape_table = {eval('"\\{}"'.format(c)): c for c in "\\abfnrtv"}
-def escape(s, max_length=80):
+def escape(s, *, width=None, default_width=False):
+    if default_width:
+        width = DEFAULT_WIDTH
 
     # Try to split on whitespace, not in the middle of a word.
-    split_at_space_pos = max_length - 10
-    if split_at_space_pos < 10:
+    if width:
+        split_at_space_pos = width - 10
+        if split_at_space_pos < 10:
+            split_at_space_pos = None
+    else:
         split_at_space_pos = None
 
     position = 0
@@ -105,10 +112,10 @@ def escape(s, max_length=80):
         if newline:
             position = 0
 
-        if split_at_space_pos is not None and position >= split_at_space_pos and " \t".find(c) != -1:
+        if split_at_space_pos and position >= split_at_space_pos and " \t".find(c) != -1:
             buf.write("\\\n")
             position = 0
-        elif position >= max_length:
+        elif width and position >= width:
             buf.write("\\\n")
             position = 0
     if not quote:
@@ -116,7 +123,8 @@ def escape(s, max_length=80):
 
     return quote + buf.getvalue() + quote
 
-def join(iterable, delim, width=80):
+def join(iterable, delim, width=None):
+    if width is None: width = DEFAULT_WIDTH
     buf = io.StringIO()
     iterable = iter(iterable)
     item = next(iterable)

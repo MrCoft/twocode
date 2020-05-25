@@ -31,9 +31,6 @@ def add_eval(context):
         # return what
     def func_def(node):
         func = context.obj.Func()
-        if node.id:
-            context.declare(node.id, func)
-            # don't if it fails?
         level = 0
         for arg in node.args:
             arg_pack = context.pack_level(arg.pack, arg.id)
@@ -52,6 +49,10 @@ def add_eval(context):
         func.return_type = context.eval(node.return_type, type="expr")
         func.code = node.block
         func.frame = context.scope.frame_copy()
+
+        func = context.obj.Ref(func, context.objects.Func)
+        if node.id:
+            context.declare(node.id, func, context.objects.Func)
         value = func
         if node.id:
             value = context.stmt_value(value)
@@ -61,21 +62,17 @@ def add_eval(context):
         # not saving for every func is efficient, but actually shouldnt be done
         # what context for the macros?
         # and what about outside, patched funcs/vars?
-
-        # __vars__
-        cls = context.obj.Class() # cls?
-        if node.id:
-            cls.__name__ = context.wrap(node.id) # wrap everywhere! a class for it, do it for basic types. Int.__name__
-            context.declare(node.id, cls)
-            # don't?
+        cls = context.obj.Class()
+            # i've seen a for loop used in custom 2c code, one that generates variables
+            # why did we leave the "exec in class" paradigm again?
         if node.base:
             cls.__base__ = context.eval(node.base, type="expr")
         for stmt in node.block.lines:
             type_name = type(stmt).__name__
-            if type_name == "stmt_var": ###
-                decl = stmt.declares.decl
+            if type_name == "stmt_var":
+                decl = stmt.declares.decl # syntax error
                 attr = context.obj.Attr()
-                attr.type = context.eval(decl.type, type="expr") if decl.type else None # eval None is None?
+                attr.type = context.eval(decl.type, type="expr") if decl.type else context.basic_types.Object
                 if stmt.assign_chain:
                     assign = stmt.assign_chain[0]
                     attr.default_ = assign.tuple # fk
@@ -105,6 +102,10 @@ def add_eval(context):
                     continue
             raise SyntaxError("invalid statement in class definition")
         cls.__frame__ = context.scope.frame_copy()
+
+        cls = context.obj.Ref(cls, context.objects.Class)
+        if node.id:
+            context.declare(node.id, cls, context.objects.Class)
         value = cls
         if node.id:
             value = context.stmt_value(value)
@@ -153,8 +154,7 @@ def add_eval(context):
                         expand_name(name, None)
                 return # value?
                 # else error
-            context.declare(id, value) # type
-            # type = context.eval(decl.type) if decl.type else context.basic_types.Object
+            context.declare(id, value, value.__reftype__)
 
         compr = []
         while True:
@@ -197,7 +197,7 @@ def add_eval(context):
         try:
             with context.ScopeContext():
                 if node.id:
-                    context.declare(node.id, obj)
+                    context.declare(node.id, obj, obj.__reftype__)
                 value = context.eval(node.block, type="pass")
                 value = context.stmt_value(value)
                 return value
@@ -207,7 +207,7 @@ def add_eval(context):
         obj = context.eval(node.expr, type="expr")
         value = context.operators.eval.native(node.block, scope=obj)
         if node.id:
-            context.declare(node.id, obj)
+            context.declare(node.id, obj, obj.__reftype__)
         value = context.stmt_value(value)
         return value
     def stmt_tuple(node):
@@ -280,7 +280,7 @@ def add_eval(context):
     def stmt_var(node):
         # assign chain!
         def expand_var(node, value):
-            type_name = type(node).__name__
+            type_name = builtins.type(node).__name__
             if type_name == "multiple_decl":
                 decl = node.decl
             elif type_name == "multiple_decl_tuple":
@@ -300,9 +300,10 @@ def add_eval(context):
                         expand_var(decl, value)
                 return # value?
                 # else error
-            context.declare(decl.id, value) # type
-            # type = context.eval(decl.type) if decl.type else context.basic_types.Object
-            # wrap None
+            # convert?
+            type = context.eval(decl.type) if decl.type else value.__reftype__
+            context.declare(decl.id, value, type)
+            # var x?
 
         if node.assign_chain:
             value = context.eval(node.assign_chain[0].tuple, type="expr")
@@ -322,10 +323,10 @@ def add_eval(context):
                     raise ImportError("can't rename all: {} as {}".format(".".join(path), id))
                 module = context.imp(".".join(source + path[:-1]))
                 for name, var in module.__this__.items():
-                    context.declare(name, var.value)
+                    context.declare(name, var.value, var.type)
                 continue
             module = context.imp(".".join(source + path))
-            context.declare(path[-1] if not id else id, module)
+            context.declare(path[-1] if not id else id, module, module.__reftype__)
             # BEHAVIOR:
             # do import modules DEFINED THERE
             # do import functions DEFINED THERE
@@ -379,6 +380,7 @@ def add_eval(context):
     def expr_decorator(node):
         # rename? map a -> b, map_call
         # function retains name
+        # has to work on callable, so we can stack wrappers!!!!!
         decorator = context.eval(node.term, type="expr")
         if not decorator.args[0].macro_:
             obj = context.eval(node.expr, type="expr")
@@ -455,19 +457,19 @@ def add_eval(context):
                 if arg.name in scope:
                     scope[arg.name] = eval(scope[arg.name])
             elif arg.pack == "args":
-                pack = [eval(value) for value in scope[arg.name]]
+                pack = [eval(value).__refobj__ for value in scope[arg.name]]
                 if val_args:
                     if not arg.macro_:
-                        pack.extend(val_args)
+                        pack.extend([value.__refobj__ for value in val_args])
                         val_args = []
                     else:
                         pass # error ,test
                 scope[arg.name] = pack
             elif arg.pack == "kwargs":
-                pack = {name: eval(value) for name, value in scope[arg.name].items()}
+                pack = {name: eval(value).__refobj__ for name, value in scope[arg.name].items()}
                 if val_kwargs:
                     if not arg.macro_:
-                        pack.update(val_kwargs)
+                        pack.update({name: value.__refobj__ for name, value in val_kwargs.items()})
                         val_kwargs = {}
                     else:
                         pass # error ,test
@@ -477,14 +479,14 @@ def add_eval(context):
         # macro args not working right now
         return context.call_func(func, scope)
     def tuple(node):
-        obj = builtins.tuple(context.eval(expr, type="expr") for expr in node.expr_list)
+        obj = builtins.tuple(context.eval(expr, type="expr").__refobj__ for expr in node.expr_list)
         return context.wrap(obj)
     def term_list(node):
         obj = context.eval(node.tuple, type="expr") # the items, yes, not the term
         if type(node.tuple).__name__ == "tuple":
             return context.wrap(builtins.list(context.unwrap(obj)))
         else:
-            return context.wrap([obj])
+            return context.wrap([obj.__refobj__])
     def term_map(node):
         obj = {context.unwrap(context.eval(item.key, type="expr")): context.eval(item.value, type="expr") for item in node.map.item_list}
         return context.wrap(obj)
@@ -509,8 +511,8 @@ def add_eval(context):
     context.eval_pass = switch(context.instructions, key=lambda node: type(node).__name__)
     def eval(node, type="expr"):
         obj = context.eval_pass(node)
-        if obj is None or not hasattr(obj, "__type__"):
-            return # context.obj.Object(context.basic_types.Null)
+        if obj is None or not isinstance(obj, context.obj.Ref):
+            return # context.obj.Ref(context.basic_types.Null)
 
         """
             SYNTACTIC OPERATORS
@@ -526,7 +528,7 @@ def add_eval(context):
             and DOESN'T become a stmt to call its __expr__,
             defeating the ops' purpose of being triggered by lack of events
 
-            instead of when it is passed, these operators needs to be called
+            instead of when it is passed, these operators need to be called
             when the object is USED, when it leaves syntactic manipulation
         """
         if type == "term":

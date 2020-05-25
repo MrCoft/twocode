@@ -16,7 +16,7 @@ class Console:
         self.streams = utils.streams_object(None)
         self.sys_streams = utils.wrap_streams(utils.streams_object(sys), utils.FlushStream)
 
-        self.context = lambda: utils.cond_context(lambda: not self.shell,
+        self.streams_context = lambda: utils.cond_context(lambda: not self.shell,
             self.streams,
             self.sys_streams,
         )
@@ -28,7 +28,7 @@ class Console:
         self.exec(ast)
         return False
     def parse(self, code, silent=False):
-        with self.context():
+        with self.streams_context():
             contexts = utils.contexts()
             if silent:
                 contexts.contexts.append(self.silent)
@@ -42,7 +42,7 @@ class Console:
     def interact(self):
         more = False
         prompt_msg = lambda: ">>> " if not more else "... "
-        with self.context():
+        with self.streams_context():
             self.buffer = []
             while True:
                 try:
@@ -75,10 +75,10 @@ class Console:
                     msg = traceback.format_exception(exc_type, exc, tb)
                     print("".join(msg), file=sys.stderr, flush=True, end="")
     def eval(self, code):
-        with self.context():
+        with self.streams_context():
             return eval(code, self.scope)
     def exec(self, code):
-        with self.context():
+        with self.streams_context():
             exec(code, self.scope)
 
 if __name__ == "__main__":

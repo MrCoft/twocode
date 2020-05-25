@@ -5,7 +5,7 @@ import builtins
 import twocode.utils.string
 import copy
 
-delim = ".\t".replace("\t", " " * (4 - 1))
+DELIM = ".\t".replace("\t", " " * (4 - 1))
 
 class Node:
     def __init__(self, **kwargs):
@@ -18,7 +18,7 @@ class Node:
         ]
         for child in self.children:
             for line in str(child).splitlines():
-                lines.append(delim + line)
+                lines.append(DELIM + line)
         return "\n".join(lines)
     def __eq__(self, other):
         if utils.redict(self.__dict__, "children parents".split()) != utils.redict(other.__dict__, "children parents".split()):
@@ -111,7 +111,8 @@ def node_gen(name, vars):
                             list_var[i] = next(children)
         def __repr__(self):
             return self.str_func()
-        def str_func(self, *, delim=delim, str=str):
+        def str_func(self, *, delim=None, str=str):
+            if delim is None: delim = DELIM
             name = GenNode.name_func(self)
             items = GenNode.attr_lines(self, delim=delim, str=str)
             if not items:
@@ -133,7 +134,8 @@ def node_gen(name, vars):
         def name_func(node):
             return type(node).__name__
         @staticmethod
-        def attr_lines(node, *, delim=delim, str=str):
+        def attr_lines(node, *, delim=None, str=str):
+            if delim is None: delim = DELIM
             if len(node.__dict__) == 1:
                 value = next(iter(node.__dict__.values()))
                 if hasattr(value, "children"):
@@ -167,14 +169,16 @@ def compact_value(value, *, str=str):
             return "[]"
     else:
         return str(value)
-def compact_branches(value, *, delim=delim, str=str):
+def compact_branches(value, *, delim=None, str=str):
+    if delim is None: delim = DELIM
     if type(value) is builtins.str:
         return False
     if type(value) is list:
         return bool(value)
     lines = str(value).splitlines()
     return len([line for line in lines if not line.startswith(delim)]) > 1
-def compact_block(value, *, delim=delim, str=str):
+def compact_block(value, *, delim=None, str=str):
+    if delim is None: delim = DELIM
     code = compact_value(value, str=str)
     lines = code.splitlines()
     if compact_branches(value, delim=delim, str=str):
@@ -193,5 +197,5 @@ def compact_node(node, name_func, enum_func):
         lines = [name + ":"]
         for item in items:
             for line in item.splitlines():
-                lines.append(delim + line)
+                lines.append(DELIM + line)
         return "\n".join(lines)

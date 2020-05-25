@@ -1,5 +1,6 @@
 import sys
 import functools
+import inspect
 
 class fail_check:
     def __init__(self, get, check=lambda old, new: old != new, error=lambda: Exception("Check failure")):
@@ -108,3 +109,68 @@ def filter(*fs):
             item = f(item)
         return item
     return f
+
+def map_args(map):
+    def wrap(f):
+        sign = inspect.signature(f)
+        sign = list(sign.parameters.values())
+        indices = []
+        keywords = set()
+        map_args = None
+        map_kwargs = None
+        arg_names = set()
+        for pos, param in enumerate(sign):
+            if param.name in map:
+                if param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD:
+                    indices.append((param.name, pos))
+                    keywords.add(param.name)
+                if param.kind == inspect.Parameter.KEYWORD_ONLY:
+                    keywords.add(param.name)
+                if param.kind == inspect.Parameter.VAR_POSITIONAL:
+                    map_args = param.name, pos
+                if param.kind == inspect.Parameter.VAR_KEYWORD:
+                    map_kwargs = param.name
+            if param.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
+                arg_names.add(param.name)
+        @functools.wraps(f)
+        def wrapped(*args, **kwargs):
+            args = list(args)
+            for name, pos in indices:
+                if len(args) > pos:
+                    args[pos] = map[name](args[pos])
+            for name in keywords:
+                if name in kwargs:
+                    kwargs[name] = map[name](kwargs[name])
+            if map_args:
+                name, pos = map_args
+                args[pos:] = (map[name](item) for item in args[pos:])
+            if map_kwargs:
+                for name in kwargs:
+                    if name not in arg_names:
+                        kwargs[name] = map[map_kwargs](kwargs[name])
+            return f(*args, **kwargs)
+        return wrapped
+    return wrap
+
+def type_check(obj, type):
+    if not isinstance(obj, type):
+        raise TypeError("{} is not {}".format(repr(obj), type.__name__))
+    return obj
+def type_check_decor(*, result=None, **types):
+    def gen_map(type):
+        def check(obj):
+            type_check(obj, type)
+            return obj
+        return check
+    map = {name: gen_map(type) for name, type in types.items()}
+    check_args = map_args(map)
+    def wrap(f):
+        f = check_args(f)
+        @functools.wraps(f)
+        def wrapped(*args, **kwargs):
+            return_value = f(*args, **kwargs)
+            if result:
+                type_check(return_value, result)
+            return return_value
+        return wrapped
+    return wrap

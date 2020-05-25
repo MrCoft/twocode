@@ -42,5 +42,5 @@ setup(
     author_email = "devcoft@gmail.com",
     description = "A language designed for code generation. Load a codebase in an interpreter, edit and create classes and functions, then translate it into the target language.",
     license = "MIT",
-    url = "http://github.com/MrCoft/twocode",
+    url = twocode.url,
 )

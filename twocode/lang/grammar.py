@@ -1,7 +1,7 @@
 from twocode.parser import LexLanguage
 from twocode.parser.state_parser import Grammar
 from twocode.utils.node import map, switch, Var
-from twocode.lang.repr import gen_repr
+from twocode.lang.source import gen_source
 import copy
 
 def lexer():
@@ -425,6 +425,8 @@ def transform_types(input_types):
 
     # TYPES: func
     func_def = node_gen("func_def", [Var("id"), Var("args", type="func_arg", list=True), Var("return_type", type="type"), Var("block", type="code")])
+    for type_name in "arrow_func arrow_func_single expr_arrow".split():
+        del node_types[type_name]
 
     type_map["func_def"] = lambda node: func_def(node.id, node.args, node.return_type.type if node.return_type else None, node.block)
     type_map["arrow_func"] = lambda node: func_def(None, node.args, None, node_types["code"]([node_types["stmt_return"](node_types["tuple_expr"](node.expr))]))
@@ -471,6 +473,8 @@ def transform_types(input_types):
     # TYPES: block chains
     if_chain = node_gen("if_chain", [Var("if_blocks", type="if_block", list=True), Var("else_block", type="code")])
     try_chain = node_gen("try_chain", [Var("try_block", type="code"), Var("catch_blocks", type="catch_block", list=True), Var("finally_block", type="code")])
+    for type_name in "else_if_block else_block".split():
+        del node_types[type_name]
 
     type_map["if_chain"] = lambda node: if_chain(
         [node.if_block] + [else_if_block.if_block for else_if_block in node.else_if_blocks],
@@ -524,13 +528,13 @@ def transform_types(input_types):
     type_map["path_item_id"] = lambda node: node.id
     type_map["path_item_all"] = lambda node: "*"
 
-    # TYPES: repr
+    # TYPES: source
     for type_name, node_type in node_types.items():
-        repr = gen_repr(node_type)
+        source = gen_source(node_type)
         node_type.tree = node_type.__repr__
-        if repr:
-            node_type.__repr__ = repr
-            node_type.source = repr
+        if source:
+            node_type.__repr__ = source
+            node_type.source = source
 
     return node_types, map(leave=switch(type_map, key=lambda node: type(node).__name__))
 

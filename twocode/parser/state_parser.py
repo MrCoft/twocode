@@ -452,7 +452,7 @@ class Grammar:
             rule_name = str(rule)
             if rule_name in rule_scope:
                 rule.name = "2"
-                rule_name = utils.free_var(str(rule), rule_scope)
+                rule_name = utils.unique_name(str(rule), rule_scope)
                 rule.name = rule_name[len(rule.symbol + "_"):]
             rule_scope.add(rule_name)
     def gen_transform(self, prototype_rules, rules, rule_copies):
@@ -649,6 +649,36 @@ if __name__ == "__main__":
 
         delta = time.time() - start
         print("finished in {:.2f} seconds".format(delta))
+
+        def print_tree(node):
+            def travel(node):
+                type_name = type(node).__name__
+                if len(node.children) == 1:
+                    lines = travel(node.children[0])
+                    lines[0] = "|___{}.{}".format(type_name, lines[0][4:])
+                    # or more rich?
+                    return lines
+                files = []
+                dir_lines = []
+                for child in node.children:
+                    lines = travel(child)
+                    if len(lines) == 1:
+                        files.append(lines[0][4:])
+                    else:
+                        for line in lines:
+                            lines.append("| " + line)
+                file_lines = [] # it would have to know how deep it is?
+                # minimum 40 chars from the left
+                # :
+                return ["|____" + type_name] + dir_lines
+            return "\n".join(travel(node))
+        print()
+        print(print_tree(ast))
+
+        # all children which don't have children
+        # pack together, first, join by ", " to 80 chars max
+
+        # |____Event, Log, Relay
 
 # match deepcopy
 # push 80 chars

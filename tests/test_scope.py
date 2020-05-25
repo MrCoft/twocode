@@ -74,3 +74,12 @@ kind of the opposite of declare tbh
 
 # getattr errors from importing
 # importing with errors does not set the name
+
+
+# does a.this work? should it?
+# it should not
+# in a it should
+
+
+# in [a, b]: print(x, y)
+  #   test

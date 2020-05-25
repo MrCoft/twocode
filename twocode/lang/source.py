@@ -11,7 +11,7 @@ map = {
     "decl": lambda node: node.id + (":{}".format(str(node.type)) if node.type else ""),
     "call_arg": lambda node: pack_args(node.pack) + ("{}=".format(node.id) if node.id else "") + str(node.value),
     "if_block": lambda node: "if {}:".format(str(node.expr)) + wrap_block(node.block),
-    # NOTE: although never repr'd directly, it best describes its scope for the transpiler
+    # NOTE: although never source'd directly, it best describes its scope for the transpiler
     "for_loop": lambda node: "for " +\
         (", ".join(str(name) for name in node.names.names) if type(node.names).__name__ == "multiple_id_tuple" and len(node.names.names) > 1 else str(node.names)) +\
         " in {}:".format(str(node.expr)) + wrap_block(node.block),
@@ -101,7 +101,7 @@ def map_func_def(node):
             ":" + block_code,
         ]
     return "".join(buf)
-map_lambda["func_def"] = map_func_def
+map["func_def"] = map_func_def
 # REASON:
 # easy implementation, but a correct solution would travel the graph
 # in a 4-step sequence of ifs and type checks, effectively the same
@@ -121,7 +121,7 @@ def map_func_arg(node):
     if not opt:
         buf.append("={}".format(default) if default else "")
     return "".join(buf)
-map_lambda["func_arg"] = map_func_arg
+map["func_arg"] = map_func_arg
 def map_if_chain(node):
     buf = []
     buf.append("if {}:".format(str(node.if_blocks[0].expr)))
@@ -143,7 +143,7 @@ def map_if_chain(node):
                 wrap_block(node.else_block, expand=True),
             ]
         return "".join(buf)
-map_lambda["if_chain"] = map_if_chain
+map["if_chain"] = map_if_chain
 
 # (talks about if chain?)
 # make that disappear -  a func jumps that in its mapping yet a class has to do it so weirdly?
@@ -172,11 +172,13 @@ def pack_args(mode):
     if mode == "kwargs":
         return "**"
 # limit chars per line
-def gen_repr(node_type):
+def gen_source(node_type):
     type_name = node_type.__name__
-    if type_name in map_format:
-        msg = map_format[type_name]
+    format = map.get(type_name)
+    if format is None:
+        return None
+    if isinstance(format, str):
         vars = [var.name for var in node_type.vars]
-        return lambda node: msg.format(**{var: str(node.__dict__[var]) for var in vars})
-    if type_name in map_lambda:
-        return map_lambda[type_name]
+        return lambda node: format.format(**{var: str(node.__dict__[var]) for var in vars})
+    if callable(format):
+        return format

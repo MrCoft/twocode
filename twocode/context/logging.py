@@ -46,11 +46,11 @@ def add_logging(context):
             s = re.sub(r"\s+", " ", s)
             if len(s) > logging.MAX_OBJ_LEN:
                 with ~self:
-                    if hasattr(obj, "__type__"):
-                        type_name = context.unwrap(context.operators.qualname.native(obj.__type__))
+                    if isinstance(obj, context.obj.Ref):
+                        qualname = context.unwrap(context.operators.qualname.native(obj.__type__))
                     else:
-                        type_name = type(obj).__name__
-                wrap = "{}<{{}}..>".format(type_name)
+                        qualname = type(obj).__name__
+                wrap = "{}<{{}}..>".format(qualname)
                 s = wrap.format(s[:logging.MAX_OBJ_LEN - len(wrap) + len("{}")])
             return s
         def __enter__(self):

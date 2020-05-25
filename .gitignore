@@ -29,3 +29,5 @@ jupyter_notebook.py
 math_env.py
 
 !notebooks/codeedit.ipynb
+
+site/

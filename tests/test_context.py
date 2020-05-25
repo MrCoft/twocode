@@ -390,3 +390,7 @@ AttributeError: 'NoneType' object has no attribute '__type__'
     # all its vars are types
     # this along with just traveling the entire codebase
     # i don't like the parser/code separation
+
+# getattr works if not found, no? test that
+
+# qualname working at all - 1.__type__ is class Int

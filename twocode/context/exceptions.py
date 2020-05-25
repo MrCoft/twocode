@@ -88,25 +88,27 @@ def add_exceptions(context):
             super().__init__()
             self.exc = exc
             self.eval_stack = eval_stack
+        def __str__(self):
+            return "\n\n" + context.traceback(self)
     context.exc.RuntimeError = RuntimeError
 
     Object, Class, Func = [context.obj[name] for name in "Object, Class, Func".split(", ")]
 
     context.exc_types = utils.Object()
-    def gen_type(name):
-        type = context.obj.Class()
-        context.exc_types[name] = type
-        return type
-    def attach(type, name, **kwargs):
+    def gen_class(name):
+        cls = context.obj.Class()
+        context.exc_types[name] = cls
+        return cls
+    def attach(cls, name, **kwargs):
         def wrap(func):
-            type.__fields__[name] = Func(native=func, **kwargs)
+            cls.__fields__[name] = Func(native=func, **kwargs)
         return wrap
 
-    Exception = gen_type("Exception")
+    Exception = gen_class("Exception")
     def gen_exc(name):
-        type = gen_type(name)
-        type.__base__ = Exception
-        return type
+        cls = gen_class(name)
+        cls.__base__ = Exception
+        return cls
     InternalError = gen_exc("InternalError")
     SyntaxError = gen_exc("SyntaxError")
     NameError = gen_exc("NameError")
@@ -140,6 +142,7 @@ def add_exceptions(context):
             return old_call_func(*args, **kwargs)
         finally:
             context.eval_stack.pop()
+    context.call_func = call_func
     def internal_error_msg(exc):
         lines = []
         tb = exc.__traceback__
@@ -147,7 +150,11 @@ def add_exceptions(context):
             filename = tb.tb_frame.f_code.co_filename
             lineno = tb.tb_lineno
             name = tb.tb_frame.f_code.co_name
-            if name not in "filter eval wrapped".split():
+            if name not in """
+                filter eval wrapped <lambda> __matmul__
+                call call_func call_method
+                check type_check
+            """.split():
                 lines.append(" " * 2 + 'File "{}", line {}, in {}'.format(filename, lineno, name))
             if tb.tb_next:
                 tb = tb.tb_next
@@ -155,7 +162,7 @@ def add_exceptions(context):
                 break
         lines.append("{}: {}".format(type(exc).__qualname__, str(exc)))
         return "\n" + "\n".join(lines)
-    context.call_func = call_func
+    context.internal_error_msg = internal_error_msg
 
     def traceback(exc):
         exc, eval_stack = exc.exc, exc.eval_stack
@@ -184,14 +191,21 @@ def add_exceptions(context):
             # or from lex data
             # we can tell boundmethod's path, but not static
             # can tell from closure? scope analysis
+
+            # is the internal not missing lines?
             lines.append(line)
-        qualname = context.unwrap(context.operators.qualname.native(exc.__type__))
+        try:
+            qualname = context.unwrap(context.operators.qualname.native(exc.__type__))
+        except:
+            # REASON: if it's a setup error before init_scope
+            qualname = "Error"
+            for name, exc_type in context.exc_types.items():
+                if exc.__type__ is exc_type:
+                    qualname = name
+                    break
         lines.append("{}: {}".format(qualname, "")) # string operator?
         msg = "\n".join(lines)
         if exc.__type__ is InternalError:
             msg += exc.__this__
         return msg
     context.traceback = traceback
-    def handle_exception():
-        pass # completely artificial, for when you want to "catch runtime exceptions" in eg getattr code
-    context.handle_exception = handle_exception

@@ -427,9 +427,12 @@ if __name__ == "__main__":
     parser.valids.append(prec(compiler.rules))
     parser.wrap_code, parser.insert = gen_insert(compiler.rules)
 
-    #parser.parse(compiler.lexer.parse(open("samples/blocky.2c").read()))
-    parser.parse(compiler.lexer.parse(open("../../code/code/iter.2c").read()))
+    parser.parse(compiler.lexer.parse(open("samples/blocky.2c").read()))
+    #parser.parse(compiler.lexer.parse(open("../../code/code/iter.2c").read()))
     ast = parser.matches[0]
     print()
     print(compiler.transform(ast))
     parser.match()
+    # bad error msgs rn?
+
+    # don't say that if it's all stmts

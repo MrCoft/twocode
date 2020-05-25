@@ -1,7 +1,8 @@
 # Twocode
 [![TravisCI Build Status](https://api.travis-ci.org/MrCoft/twocode.svg?branch=master)](https://travis-ci.org/MrCoft/twocode) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 
-A language designed for code generation. Load code in an interpreter, edit and create classes and functions, then transpile it to the target language.
+Language designed for code generation. Solve difficult problems by adding new language features from within your code.
+Experimental? Metaprogramming?
 
 ### Demo
 Check out [this Jupyter Notebook](notebooks/codeedit.ipynb) demonstrating code editing in Twocode!
@@ -14,7 +15,7 @@ Check out [this Jupyter Notebook](notebooks/codeedit.ipynb) demonstrating code e
 easy_install https://github.com/MrCoft/twocode/tarball/master
 twocode
 ```
-Starts the Twocode console.
+Starts the interpreter.
 
 ### Status
 Missing key features such as typing, advanced class fields, transpiler, native implementation.

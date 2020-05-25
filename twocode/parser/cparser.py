@@ -73,7 +73,7 @@ class ParserGen:
                 if "DEBUG" in LOG:
                     msg = self.debug()
                     if msg:
-                        lines.append('print_state(); cout << "{}" << endl << endl;'.format(repr(msg)[1:-1]))
+                        lines.append('print_state(); cout << {} << endl << endl;'.format(twocode.utils.string.escape(msg)))
                 lines.extend(self.code().splitlines())
                 lines = [" " * 4 + line for line in lines] # format of the msg
                 if self.use_label:
@@ -120,19 +120,21 @@ class ParserGen:
             def __init__(self):
                 super().__init__()
                 self.target = None
-                self.table_target = None
+                # self.table_target = None
             def comment(self):
                 return self.rule.pattern[self.pos].name.upper()
             def code(self):
+                stack_lines = []
+                stack_lines.append("*next_stack_ptr++ = &&{};".format(self.next_target.label()))
+                if self.fail_target is not gen.last_rule_fail:
+                    stack_lines.append("*fail_stack_ptr++ = &&{};".format(self.fail_target.label()))
+                    stack_lines.append("*buffer_stack_ptr++ = buffer_ptr;")
                 return block("""
-                    *stack_ptr++ = {}; // {}
-                    *buffer_stack_ptr++ = buffer_ptr;
-
-                    // new
-                    *
+                    {}
 
                     goto {};
-                """.format(self.table_target * 2, gen.goto_table_items[self.table_target], self.target.label()))
+                """).format("\n".join(stack_lines), self.target.label())
+                # """.format(self.table_target * 2, gen.goto_table_items[self.table_target], self.target.label()))
                 # is saying += 4 instead an optim?
         class Terminal(Symbol):
             def __init__(self):
@@ -183,18 +185,19 @@ class ParserGen:
                 return block("""
                     // ast[ast_ptr++] = {};
                     // reinterpret_cast<*>(&)    ASSIGN THE FIRST NODE
+                    /*
                     if (goto_table[*--stack_ptr] != &&label_last_rule_fail)
                         *history_stack_ptr++ = *stack_ptr; // optim?
                         // need buffer pos as well
-                    goto *goto_table[*stack_ptr + 1];
-                """.format(self.rule.symbol))
+                    */
+                    goto **--next_stack_ptr;
+                """.format(self.rule.symbol)) # TODO: history dead?
                 # lets ignore this for now
                 """
                     *ast_ptr++ = node_ptr
                 """
             def debug(self):
                 return "Created {}".format(self.rule.name)
-            # stack ptr could be pure pointer, not gototable
 
         self.states = []
         self.symbol_states = {}
@@ -228,10 +231,10 @@ class ParserGen:
         state.comment = lambda: "LAST RULE FAIL"
         state.label = lambda: "label_last_rule_fail"
         state.code = lambda: block("""
-            buffer_ptr = *--buffer_stack_ptr;
+            // buffer_ptr = *--buffer_stack_ptr;
             // ast_ptr = ast_stack[--its size]
-            goto *goto_table[*--stack_ptr];
-        """)
+            goto **--fail_stack_ptr;
+        """) # TODO: history dead
         self.last_rule_fail = state
         self.states.append(state)
 
@@ -338,8 +341,9 @@ class ParserGen:
         state.comment = lambda: "L-RECUR FAIL"
         state.label = lambda: "label_lrecur_fail"
         state.code = lambda: block("""
-            goto *goto_table[*--stack_ptr + 1];
-        """) # possibly inlined later, like the other node
+            goto **--next_stack_ptr;
+        """) # TODO: not that simple
+        # possibly inlined later, like the other node
         self.lrecur_fail = state
         self.states.append(state)
         for symbol in self.symbols:
@@ -401,26 +405,27 @@ class ParserGen:
                 while state.target in redirect:
                     state.target = redirect[state.target]
 
-        # TRANSFORM: goto table
-        self.goto_table = []
-        self.goto_table_items = []
-        num_items = 0
-        for symbol in self.symbols:
-            #for r, rule in enumerate(self.symbol_rules[symbol]): # [:-1] because tail rec?
-            #    # for nonterminal states?
-            for rule in self.symbol_rules[symbol]:
-                goto_lines = []
-                for state in self.rule_states[rule]:
-                    if isinstance(state, Nonterminal):
-                        state.table_target = num_items
-                        goto_lines.append("&&{}, &&{},".format(state.fail_target.label(), state.next_target.label()))
-                        num_items += 1
-                if goto_lines:
-                    self.goto_table.append("// {} -> {}".format(symbol.upper(), self.rule_pattern[rule]))
-                    self.goto_table.extend(goto_lines)
-                    for line in goto_lines:
-                        fail_target, next_target = line.translate({ord("&"): None}).rstrip(",").split(", ")
-                        self.goto_table_items.append((next_target, fail_target))
+        if False:
+            # TRANSFORM: goto table
+            self.goto_table = []
+            self.goto_table_items = []
+            num_items = 0
+            for symbol in self.symbols:
+                #for r, rule in enumerate(self.symbol_rules[symbol]): # [:-1] because tail rec?
+                #    # for nonterminal states?
+                for rule in self.symbol_rules[symbol]:
+                    goto_lines = []
+                    for state in self.rule_states[rule]:
+                        if isinstance(state, Nonterminal):
+                            state.table_target = num_items
+                            goto_lines.append("&&{}, &&{},".format(state.fail_target.label(), state.next_target.label()))
+                            num_items += 1
+                    if goto_lines:
+                        self.goto_table.append("// {} -> {}".format(symbol.upper(), self.rule_pattern[rule]))
+                        self.goto_table.extend(goto_lines)
+                        for line in goto_lines:
+                            fail_target, next_target = line.translate({ord("&"): None}).rstrip(",").split(", ")
+                            self.goto_table_items.append((next_target, fail_target))
 
         # filters:
         # only first buffer[buffer_ptr] is token
@@ -441,6 +446,7 @@ class ParserGen:
         parts.append(block("""
             #include <iostream>
             #include <fstream>
+            #include <map>
             using namespace std;
 
             unsigned char buffer[256];
@@ -466,29 +472,37 @@ class ParserGen:
             unsigned char* buffer_ptr;
             unsigned char token;
 
-            unsigned char stack[1024];
-            unsigned char* stack_ptr = stack;
+            void* next_stack[1024];
+            void** next_stack_ptr = next_stack;
+            void* fail_stack[1024];
+            void** fail_stack_ptr = fail_stack;
             unsigned char* buffer_stack[1024];
             unsigned char** buffer_stack_ptr = buffer_stack;
 
             // debug
             unsigned char history_stack[1024];
             unsigned char* history_stack_ptr = history_stack;
-
-            // new
-            void* next_stack[1024];
-            void** next_stack_ptr = next_stack;
-            void* fail_stack[1024];
-            void** fail_stack_ptr = fail_stack;
         """))
 
         parse_parts = []
-        parse_parts.append(block("""
-            void* goto_table[] = {{
-                {}
-            }};
-        """, indent=True).format(textwrap.indent("\n".join(self.goto_table), " " * 8).lstrip())
-        )
+        if False:
+            parse_parts.append(block("""
+                void* goto_table[] = {{
+                    {}
+                }};
+            """, indent=True).format(textwrap.indent("\n".join(self.goto_table), " " * 8).lstrip())
+            )
+        if "DEBUG" in LOG:
+            stack_str_table = ",\n".join(['{{&&{}, "{}"}}'.format(state.label(), state.label()) for state in self.states if state.use_label])
+            stack_str_table = textwrap.indent(stack_str_table, " " * 8).lstrip()
+            parts.append(block("""
+                static map<void*, string> stack_str;
+            """))
+            parse_parts.append(block("""
+                stack_str = {{
+                    {}
+                }};
+            """, indent=True).format(stack_str_table.lstrip()))
         parse_parts.append("\n\n".join(str(state) for state in self.states))
         parts.append(block("""
             void parse() {{
@@ -508,21 +522,22 @@ class ParserGen:
                 }};
             """).format(token_str_table.lstrip()))
 
-            stack_str_table = "\n".join(['"({}, {})",'.format(next_target, fail_target) for next_target, fail_target in self.goto_table_items])
-            stack_str_table = textwrap.indent(stack_str_table, " " * 4).lstrip()
-            parts.insert(-1, block("""
-                static constexpr const char* stack_str[] = {{
-                    {}
-                }};
-            """).format(stack_str_table.lstrip()))
+            if False:
+                stack_str_table = "\n".join(['"({}, {})",'.format(next_target, fail_target) for next_target, fail_target in self.goto_table_items])
+                stack_str_table = textwrap.indent(stack_str_table, " " * 4).lstrip()
+                parts.insert(-1, block("""
+                    static constexpr const char* stack_str[] = {{
+                        {}
+                    }};
+                """).format(stack_str_table.lstrip()))
 
-            history_str_table = "\n".join(['"{}",'.format(fail_target) for next_target, fail_target in self.goto_table_items])
-            history_str_table = textwrap.indent(history_str_table, " " * 4).lstrip()
-            parts.insert(-1, block("""
-                static constexpr const char* history_str[] = {{
-                    {}
-                }};
-            """).format(history_str_table.lstrip()))
+                history_str_table = "\n".join(['"{}",'.format(fail_target) for next_target, fail_target in self.goto_table_items])
+                history_str_table = textwrap.indent(history_str_table, " " * 4).lstrip()
+                parts.insert(-1, block("""
+                    static constexpr const char* history_str[] = {{
+                        {}
+                    }};
+                """).format(history_str_table.lstrip()))
 
             parts.insert(-1, block("""
                 static const char* delim = "{}";
@@ -536,11 +551,13 @@ class ParserGen:
                     cout << ",..]" << endl;
 
                     cout << delim << "Stack:" << endl;
+                    /*
                     cout << delim << delim << "Size: " << static_cast<unsigned>(stack_ptr - stack) << endl;
                     cout << delim << delim << "Targets:" << endl;
                     for (unsigned char* s = stack; s < stack_ptr; s++) {{
                         cout << delim << delim << delim << stack_str[(*s) >> 1] << endl;
                     }}
+                    */
                     cout << delim << delim << "Buffer: [";
                     for (unsigned char** b = buffer_stack; b < buffer_stack_ptr; b++) {{
                         cout << static_cast<unsigned>(*b - buffer);
@@ -550,16 +567,29 @@ class ParserGen:
                     cout << "]" << endl;
 
                     // debug
+                    /*
                     cout << delim << delim << "History:" << endl;
                     for (unsigned char* h = history_stack; h < history_stack_ptr; h++) {{
                         cout << delim << delim << delim << history_str[(*h) >> 1] << endl;
                     }}
+                    */
+
+                    cout << delim << delim << "Next Stack:" << endl;
+                    for (void** s = next_stack; s < next_stack_ptr; s++) {{
+                        cout << delim << delim << delim << stack_str.at(*s) << endl;
+                    }}
+                    cout << delim << delim << "Fail Stack:" << endl;
+                    for (void** s = fail_stack; s < fail_stack_ptr; s++) {{
+                        cout << delim << delim << delim << stack_str.at(*s) << endl;
+                    }}
 
                     cout << endl;
                 }}
-            """).format("\t".replace("\t", " " * (4))))
+            """).format("\t".replace("\t", " " * (4)))) # TODO: history
+            # cout << delim << delim << delim << stack_str[s] << endl;
+            # insert an eleemnt. wat
 
-        code = "\n\n".join(parts)
+        code = "\n\n".join(parts) + "\n"
         with open("parser.cpp", "w", encoding="utf-8") as file:
             file.write(code)
 
@@ -849,3 +879,18 @@ State:
             list.pop()
             history.push(HistoryCmdPush(item))
 """
+
+
+# the map - static? set?
+# and aren't they... copied? managing the change
+# remove old stacks
+
+# Created _WS_append, repeating L-recur
+# LIAR
+
+# map out of range after creating 100mb of output
+# lrecur fail is silent
+
+#
+
+# http://www.cplusplus.com/forum/beginner/46712/
