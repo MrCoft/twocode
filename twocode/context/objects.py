@@ -30,7 +30,10 @@ def add_objects(context):
         return wrap
     context.native_wraps = wraps
 
-    context.obj = utils.Object()
+    from typing import TYPE_CHECKING
+    if TYPE_CHECKING:
+        from .objects import ContextObj
+    context.obj: ContextObj = utils.Object()
     class Ref:
         """
             DESIGN:

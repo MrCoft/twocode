@@ -1,5 +1,6 @@
 from twocode.utils.code import InlineException, type_check_decor
 from twocode import utils
+from typing import Union
 
 def add_typing(context):
     Class, Func = [context.obj[name] for name in "Class, Func".split(", ")]
@@ -41,7 +42,10 @@ def add_typing(context):
     # List<T>() - term_call
     # constructor - __type_params__
     # T is visible correctly from within
-    def type_obj(type: Type):
+    Ref = context.obj.Ref
+    Class = context.obj.Class
+
+    def type_obj(type: Ref) -> str:
         '''Turns a Class object into a ClassType.'''
         # lets absolutely do a obj->string function, for errors everywhere
         # any param can itself be a type object. or maybe it has to be. yes, it has to be.
