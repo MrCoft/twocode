@@ -17,7 +17,7 @@ setup(
     download_url=twocode.url,
     license='MIT',
 
-    packages=find_packages(exclude=['tests']),
+    packages=find_packages(exclude=['tests', 'tests.old']),
     install_requires=[],
     include_package_data=True,
     zip_safe=False,
