@@ -17,11 +17,11 @@ setup(
     download_url=twocode.url,
     license='MIT',
 
-    packages=find_packages(),
+    packages=find_packages(exclude=['tests']),
     install_requires=[],
     include_package_data=True,
     zip_safe=False,
-    test_suite="tests",
+    test_suite='tests',
     # cmdclass={'test': PyTest},
     extras_require={
         'testing': ['pytest', 'pytest-xdist'],
