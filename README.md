@@ -1,6 +1,6 @@
 # Twocode
 [![TravisCI Build Status](https://api.travis-ci.org/MrCoft/twocode.svg?branch=revival)](https://travis-ci.org/MrCoft/twocode)
-[![Coverage Status](https://coveralls.io/repos/github/MrCoft/xprmind/badge.svg?branch=revival)](https://coveralls.io/github/MrCoft/xprmind?branch=revival)
+[![Coverage Status](https://coveralls.io/repos/github/MrCoft/twocode/badge.svg?branch=revival)](https://coveralls.io/github/MrCoft/twocode?branch=revival)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 
 Language designed for code generation. Solve difficult problems by adding new language features from within your code.
