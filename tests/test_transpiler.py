@@ -1,0 +1,1 @@
+# prevent loops in class discovery - any imports really
