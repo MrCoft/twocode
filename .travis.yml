@@ -6,6 +6,6 @@ install:
   - pip install pytest pytest-xdist
   - pip install pytest-cov coveralls
 script:
-  - pytest -n 4 --cov=twocode
+  - pytest -n 4 --cov=twocode/
 after_success:
   - coveralls
