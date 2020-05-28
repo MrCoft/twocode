@@ -22,9 +22,9 @@ setup(
     include_package_data=True,
     zip_safe=False,
     test_suite="tests",
-    tests_require=['pytest', 'pytest-runner'],
+    # cmdclass={'test': PyTest},
     extras_require={
-        'testing': ['pytest'],
+        'testing': ['pytest', 'pytest-xdist'],
     },
     entry_points={
         'console_scripts': [
