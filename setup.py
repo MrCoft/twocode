@@ -1,46 +1,45 @@
 # -*- coding: utf-8 -*-
-from setuptools import setup, find_packages
-
+from setuptools import setup
+from setuptools import find_packages
 import twocode
 
-import os
-ROOT = os.path.abspath(os.path.dirname(__file__))
-codebase_files = [
-    os.path.abspath(os.path.join(root, file))[len(ROOT):].lstrip(os.path.sep)
-for root, dirs, files in os.walk(os.path.join(ROOT, "code")) for file in files]
-codebase_files = [(os.path.join("twocode", os.path.dirname(file)).replace(os.path.sep, "/"), [file.replace(os.path.sep, "/")]) for file in codebase_files]
+with open('README.md', encoding='utf-8') as file:
+    long_description = file.read()
 
 setup(
-    name = "Twocode",
-    version = twocode.__version__,
-    packages = find_packages(exclude="tests".split()),
-    # REASON: without, it installs an accessible "tests" module
-    data_files = codebase_files,
-    # REASON:
-    # Manifest.in does nothing
-    # I can't add "code" as a package because it doesn't have __init__.py
-    # it has to be hidden, twocode.code just needs to exist
-    # when installing from git, it deletes twocode/code/__init__.py?
-    # package_data uses glob whose **/* is recursive 1 level only
-    # listed manually because nothing else works
-    # it turns out pip install git+ bypasses setuptools, easy_install works
+    name='Twocode',
+    version=twocode.__version__,
+    description='Language designed for code generation. Solve difficult problems by adding new language features from within your code.',
+    long_description=long_description,
+    author='Ondřej Műller',
+    author_email='devcoft@gmail.com',
+    url='https://github.com/MrCoft/twocode',
+    download_url=twocode.url,
+    license='MIT',
 
-    entry_points = {
-        "console_scripts": [
-            "twocode = twocode:main",
+    packages=find_packages(),
+    install_requires=[],
+    include_package_data=True,
+    zip_safe=False,
+    test_suite="tests",
+    tests_require=['pytest', 'pytest-runner'],
+    extras_require={
+        'testing': ['pytest'],
+    },
+    entry_points={
+        'console_scripts': [
+            'twocode = twocode:main',
         ],
     },
-    install_requires = [],
-    include_package_data = True,
-    test_suite = "tests",
-    tests_require = ["pytest", "pytest-runner"],
-    extras_require = {
-        "testing": ["pytest"],
-    },
 
-    author = "Ondřej Műller",
-    author_email = "devcoft@gmail.com",
-    description = "A language designed for code generation. Load a codebase in an interpreter, edit and create classes and functions, then translate it into the target language.",
-    license = "MIT",
-    url = twocode.url,
+    classifiers=[
+        'Programming Language :: Other',
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: MIT License',
+        'Development Status :: 2 - Pre-Alpha',
+        'Environment :: Console',
+        'Framework :: Jupyter',
+        'Topic :: Software Development :: Interpreters',
+        'Topic :: Software Development :: Code Generators',
+    ],
 )

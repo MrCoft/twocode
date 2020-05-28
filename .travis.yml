@@ -1,7 +1,11 @@
 language: python
 python:
-  - "3.5"
+  - "3.8"
 install:
-  - "pip install -e ."
+  - pip install -r requirements.txt .
+  - pip install pytest pytest-xdist
+  - pip install pytest-cov coveralls
 script:
-  - pytest
+  - pytest -n 4 --cov=twocode
+after_success:
+  - coveralls
