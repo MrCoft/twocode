@@ -1,0 +1,468 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>twocode.transpiler package &mdash; Twocode  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Twocode
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">twocode.transpiler package</a><ul>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-twocode.transpiler.code_edit">twocode.transpiler.code_edit module</a></li>
+<li><a class="reference internal" href="#module-twocode.transpiler.scope">twocode.transpiler.scope module</a></li>
+<li><a class="reference internal" href="#module-twocode.transpiler.transpiler">twocode.transpiler.transpiler module</a></li>
+<li><a class="reference internal" href="#id1">twocode.transpiler.transpiler module</a></li>
+<li><a class="reference internal" href="#module-twocode.transpiler.type_infer">twocode.transpiler.type_infer module</a></li>
+<li><a class="reference internal" href="#module-twocode.transpiler">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Twocode</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>twocode.transpiler package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/twocode.transpiler.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="twocode-transpiler-package">
+<h1>twocode.transpiler package<a class="headerlink" href="#twocode-transpiler-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="twocode.transpiler.analysis.html">twocode.transpiler.analysis package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.analysis.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.analysis.html#module-twocode.transpiler.analysis.lvalue">twocode.transpiler.analysis.lvalue module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.analysis.html#module-twocode.transpiler.analysis.pure">twocode.transpiler.analysis.pure module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.analysis.html#module-twocode.transpiler.analysis">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="twocode.transpiler.features.html">twocode.transpiler.features package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.features.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.features.html#module-twocode.transpiler.features.closure">twocode.transpiler.features.closure module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.features.html#module-twocode.transpiler.features.expr_affix">twocode.transpiler.features.expr_affix module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.features.html#module-twocode.transpiler.features">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="twocode.transpiler.src.html">twocode.transpiler.src package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.src.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="twocode.transpiler.src.code.html">twocode.transpiler.src.code package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twocode.transpiler.src.code.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twocode.transpiler.src.code.html#twocode-transpiler-src-code-iter-module">twocode.transpiler.src.code.iter module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twocode.transpiler.src.code.html#twocode-transpiler-src-code-native-module">twocode.transpiler.src.code.native module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twocode.transpiler.src.code.html#module-twocode.transpiler.src.code">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.src.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.src.html#module-twocode.transpiler.src.Game">twocode.transpiler.src.Game module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.src.html#module-twocode.transpiler.src.code">twocode.transpiler.src.code module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.src.html#module-twocode.transpiler.src">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="twocode.transpiler.targets.html">twocode.transpiler.targets package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.targets.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="twocode.transpiler.targets.cpp.html">twocode.transpiler.targets.cpp package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twocode.transpiler.targets.cpp.html#module-twocode.transpiler.targets.cpp">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twocode.transpiler.targets.haxe.html">twocode.transpiler.targets.haxe package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twocode.transpiler.targets.haxe.html#module-twocode.transpiler.targets.haxe">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twocode.transpiler.targets.js.html">twocode.transpiler.targets.js package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twocode.transpiler.targets.js.html#module-twocode.transpiler.targets.js">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twocode.transpiler.targets.python.to.be.html">twocode.transpiler.targets.python.to.be package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twocode.transpiler.targets.python.to.be.html#module-contents">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.targets.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.targets.html#module-twocode.transpiler.targets.python">twocode.transpiler.targets.python module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.targets.html#id1">twocode.transpiler.targets.python module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="twocode.transpiler.targets.html#module-twocode.transpiler.targets">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-twocode.transpiler.code_edit">
+<span id="twocode-transpiler-code-edit-module"></span><h2>twocode.transpiler.code_edit module<a class="headerlink" href="#module-twocode.transpiler.code_edit" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="twocode.transpiler.code_edit.CodeEdit">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.transpiler.code_edit.</code><code class="sig-name descname">CodeEdit</code><a class="headerlink" href="#twocode.transpiler.code_edit.CodeEdit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="twocode.transpiler.code_edit.CodeEdit.add_node">
+<code class="sig-name descname">add_node</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.code_edit.CodeEdit.add_node" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.transpiler.code_edit.CodeEdit.map_name">
+<code class="sig-name descname">map_name</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">code</span></em>, <em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">f</span></em>, <em class="sig-param"><span class="n">scope</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.code_edit.CodeEdit.map_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.transpiler.code_edit.CodeEdit.remove_node">
+<code class="sig-name descname">remove_node</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.code_edit.CodeEdit.remove_node" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.transpiler.code_edit.CodeEdit.replace_node">
+<code class="sig-name descname">replace_node</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">parent</span></em>, <em class="sig-param"><span class="n">attr</span></em>, <em class="sig-param"><span class="n">node</span></em>, <em class="sig-param"><span class="n">index</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.code_edit.CodeEdit.replace_node" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-twocode.transpiler.scope">
+<span id="twocode-transpiler-scope-module"></span><h2>twocode.transpiler.scope module<a class="headerlink" href="#module-twocode.transpiler.scope" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="twocode.transpiler.scope.Scope">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.transpiler.scope.</code><code class="sig-name descname">Scope</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">desc</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parent</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.scope.Scope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py class">
+<dt id="twocode.transpiler.scope.Scope.Var">
+<em class="property">class </em><code class="sig-name descname">Var</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">type</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.scope.Scope.Var" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.transpiler.scope.Scope.find_name">
+<code class="sig-name descname">find_name</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.scope.Scope.find_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.transpiler.scope.Scope.flatten">
+<code class="sig-name descname">flatten</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.scope.Scope.flatten" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.transpiler.scope.Scope.full_desc">
+<code class="sig-name descname">full_desc</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.scope.Scope.full_desc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.transpiler.scope.Scope.unique_name">
+<code class="sig-name descname">unique_name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.scope.Scope.unique_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="twocode.transpiler.scope.discover_classes">
+<code class="sig-prename descclassname">twocode.transpiler.scope.</code><code class="sig-name descname">discover_classes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">env</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.scope.discover_classes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.transpiler.scope.map_code">
+<code class="sig-prename descclassname">twocode.transpiler.scope.</code><code class="sig-name descname">map_code</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.scope.map_code" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.transpiler.transpiler">
+<span id="twocode-transpiler-transpiler-module"></span><h2>twocode.transpiler.transpiler module<a class="headerlink" href="#module-twocode.transpiler.transpiler" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="twocode.transpiler.transpiler.Transpiler">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.transpiler.transpiler.</code><code class="sig-name descname">Transpiler</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.transpiler.Transpiler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt id="twocode.transpiler.transpiler.Transpiler.current">
+<code class="sig-name descname">current</code><em class="property"> = None</em><a class="headerlink" href="#twocode.transpiler.transpiler.Transpiler.current" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.transpiler.transpiler.Transpiler.discover_classes">
+<code class="sig-name descname">discover_classes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">env</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.transpiler.Transpiler.discover_classes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.transpiler.transpiler.Transpiler.gen_source">
+<code class="sig-name descname">gen_source</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lang</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.transpiler.Transpiler.gen_source" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.transpiler.transpiler.Transpiler.map_code">
+<code class="sig-name descname">map_code</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.transpiler.Transpiler.map_code" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.transpiler.transpiler.Transpiler.save">
+<code class="sig-name descname">save</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dir</span><span class="o">=</span><span class="default_value">'.'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.transpiler.Transpiler.save" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.transpiler.transpiler.Transpiler.type">
+<code class="sig-name descname">type</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.transpiler.Transpiler.type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="twocode.transpiler.transpiler.import_code_env">
+<code class="sig-prename descclassname">twocode.transpiler.transpiler.</code><code class="sig-name descname">import_code_env</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.transpiler.import_code_env" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.transpiler.transpiler.transpile">
+<code class="sig-prename descclassname">twocode.transpiler.transpiler.</code><code class="sig-name descname">transpile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">lang</span></em>, <em class="sig-param"><span class="n">dir</span><span class="o">=</span><span class="default_value">'.'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.transpiler.transpile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="id1">
+<h2>twocode.transpiler.transpiler module<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-0"></span><dl class="py class">
+<dt id="id0">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.transpiler.transpiler.</code><code class="sig-name descname">Transpiler</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt id="id2">
+<code class="sig-name descname">current</code><em class="property"> = None</em><a class="headerlink" href="#id2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="id3">
+<code class="sig-name descname">discover_classes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">env</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id3" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="id4">
+<code class="sig-name descname">gen_source</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lang</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id4" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="id5">
+<code class="sig-name descname">map_code</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id5" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="id6">
+<code class="sig-name descname">save</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dir</span><span class="o">=</span><span class="default_value">'.'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id6" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="id7">
+<code class="sig-name descname">type</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id7" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="id8">
+<code class="sig-prename descclassname">twocode.transpiler.transpiler.</code><code class="sig-name descname">import_code_env</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id8" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="id9">
+<code class="sig-prename descclassname">twocode.transpiler.transpiler.</code><code class="sig-name descname">transpile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">lang</span></em>, <em class="sig-param"><span class="n">dir</span><span class="o">=</span><span class="default_value">'.'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id9" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.transpiler.type_infer">
+<span id="twocode-transpiler-type-infer-module"></span><h2>twocode.transpiler.type_infer module<a class="headerlink" href="#module-twocode.transpiler.type_infer" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="twocode.transpiler.type_infer.TypeInfer">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.transpiler.type_infer.</code><code class="sig-name descname">TypeInfer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">transp</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.type_infer.TypeInfer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="twocode.transpiler.type_infer.TypeInfer.gen_type_ops">
+<code class="sig-name descname">gen_type_ops</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.type_infer.TypeInfer.gen_type_ops" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.transpiler.type_infer.TypeInfer.infer">
+<code class="sig-name descname">infer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.type_infer.TypeInfer.infer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.transpiler.type_infer.TypeInfer.summary">
+<code class="sig-name descname">summary</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.transpiler.type_infer.TypeInfer.summary" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-twocode.transpiler">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-twocode.transpiler" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Ondřej Műller
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

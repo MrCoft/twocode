@@ -1,0 +1,945 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>twocode.parser package &mdash; Twocode  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Twocode
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">twocode.parser package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-twocode.parser.console">twocode.parser.console module</a></li>
+<li><a class="reference internal" href="#module-twocode.parser.context">twocode.parser.context module</a></li>
+<li><a class="reference internal" href="#module-twocode.parser.cparser">twocode.parser.cparser module</a></li>
+<li><a class="reference internal" href="#module-twocode.parser.grammar">twocode.parser.grammar module</a></li>
+<li><a class="reference internal" href="#module-twocode.parser.indent_parser">twocode.parser.indent_parser module</a></li>
+<li><a class="reference internal" href="#module-twocode.parser.lexer">twocode.parser.lexer module</a></li>
+<li><a class="reference internal" href="#module-twocode.parser.parser">twocode.parser.parser module</a></li>
+<li><a class="reference internal" href="#module-twocode.parser.precedence">twocode.parser.precedence module</a></li>
+<li><a class="reference internal" href="#module-twocode.parser.state_parser">twocode.parser.state_parser module</a></li>
+<li><a class="reference internal" href="#module-twocode.parser">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Twocode</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>twocode.parser package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/twocode.parser.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="twocode-parser-package">
+<h1>twocode.parser package<a class="headerlink" href="#twocode-parser-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-twocode.parser.console">
+<span id="twocode-parser-console-module"></span><h2>twocode.parser.console module<a class="headerlink" href="#module-twocode.parser.console" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="twocode.parser.console.Console">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.console.</code><code class="sig-name descname">Console</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scope</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">shell</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.console.Console" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="twocode.parser.console.Console.eval">
+<code class="sig-name descname">eval</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">code</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.console.Console.eval" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.console.Console.exec">
+<code class="sig-name descname">exec</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">code</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.console.Console.exec" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.console.Console.interact">
+<code class="sig-name descname">interact</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.console.Console.interact" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.console.Console.parse">
+<code class="sig-name descname">parse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">code</span></em>, <em class="sig-param"><span class="n">silent</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.console.Console.parse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.console.Console.run">
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">code</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.console.Console.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-twocode.parser.context">
+<span id="twocode-parser-context-module"></span><h2>twocode.parser.context module<a class="headerlink" href="#module-twocode.parser.context" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="twocode.parser.context.Context">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.context.</code><code class="sig-name descname">Context</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lex_lang</span></em>, <em class="sig-param"><span class="n">grammar</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.context.Context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="twocode.parser.context.Context.parse">
+<code class="sig-name descname">parse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">code</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.context.Context.parse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.context.Context.transform">
+<code class="sig-name descname">transform</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ast</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.context.Context.transform" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-twocode.parser.cparser">
+<span id="twocode-parser-cparser-module"></span><h2>twocode.parser.cparser module<a class="headerlink" href="#module-twocode.parser.cparser" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="twocode.parser.cparser.ParserGen">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.cparser.</code><code class="sig-name descname">ParserGen</code><a class="headerlink" href="#twocode.parser.cparser.ParserGen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="twocode.parser.cparser.ParserGen.analyze">
+<code class="sig-name descname">analyze</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.cparser.ParserGen.analyze" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.cparser.ParserGen.form_parser">
+<code class="sig-name descname">form_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.cparser.ParserGen.form_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.cparser.ParserGen.gen_code">
+<code class="sig-name descname">gen_code</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.cparser.ParserGen.gen_code" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.cparser.ParserGen.gen_states">
+<code class="sig-name descname">gen_states</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.cparser.ParserGen.gen_states" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.cparser.block">
+<code class="sig-prename descclassname">twocode.parser.cparser.</code><code class="sig-name descname">block</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">text</span></em>, <em class="sig-param"><span class="n">indent</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.cparser.block" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.parser.grammar">
+<span id="twocode-parser-grammar-module"></span><h2>twocode.parser.grammar module<a class="headerlink" href="#module-twocode.parser.grammar" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="twocode.parser.grammar.Grammar">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.grammar.</code><code class="sig-name descname">Grammar</code><a class="headerlink" href="#twocode.parser.grammar.Grammar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py class">
+<dt id="twocode.parser.grammar.Grammar.Rule">
+<em class="property">class </em><code class="sig-name descname">Rule</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pattern</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">''</span></em>, <em class="sig-param"><span class="n">allow_ws</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">symbol</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Grammar.Rule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#twocode.parser.grammar.Rule" title="twocode.parser.grammar.Rule"><code class="xref py py-class docutils literal notranslate"><span class="pre">twocode.parser.grammar.Rule</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="twocode.parser.grammar.Grammar.Symbol">
+<em class="property">class </em><code class="sig-name descname">Symbol</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">list</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">opt</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">var</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Grammar.Symbol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py class">
+<dt id="twocode.parser.grammar.Grammar.Symbol.List">
+<em class="property">class </em><code class="sig-name descname">List</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">delim</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Grammar.Symbol.List" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.grammar.Grammar.Symbol.Var">
+<code class="sig-name descname">Var</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Grammar.Symbol.Var" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.grammar.Grammar.add_literals">
+<code class="sig-name descname">add_literals</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Grammar.add_literals" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.grammar.Grammar.add_ops">
+<code class="sig-name descname">add_ops</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Grammar.add_ops" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map&lt;Tuple&lt;K,V&gt;&gt; parsed ‘&gt;&gt;’ as bit shift
+build operators from characters in grammar</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.grammar.Grammar.add_symbol">
+<code class="sig-name descname">add_symbol</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">symbol</span></em>, <em class="sig-param"><span class="n">rules</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Grammar.add_symbol" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.grammar.Grammar.apply_list">
+<code class="sig-name descname">apply_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Grammar.apply_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>converts rules with list(expr) symbols</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.grammar.Grammar.apply_opt">
+<code class="sig-name descname">apply_opt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Grammar.apply_opt" title="Permalink to this definition">¶</a></dt>
+<dd><p>generates 2 ^ n rules from rules for each optional symbol</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.grammar.Grammar.apply_ws">
+<code class="sig-name descname">apply_ws</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Grammar.apply_ws" title="Permalink to this definition">¶</a></dt>
+<dd><p>modifies rules that have an allow_ws tag</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.grammar.Grammar.form_rules">
+<code class="sig-name descname">form_rules</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Grammar.form_rules" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.grammar.Grammar.gen_names">
+<code class="sig-name descname">gen_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Grammar.gen_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.grammar.Grammar.gen_transform">
+<code class="sig-name descname">gen_transform</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">prototype_rules</span></em>, <em class="sig-param"><span class="n">rules</span></em>, <em class="sig-param"><span class="n">rule_copies</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Grammar.gen_transform" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>solved design problems:</dt><dd><dl class="simple">
+<dt>rules like &lt;file&gt; are almost placeholders, a reason for a fallthrough transformation</dt><dd><p>as creating a Node for them would cut the tree
+but this then breaks a Return node which has no children</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.grammar.Grammar.sub_ws">
+<code class="sig-name descname">sub_ws</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Grammar.sub_ws" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="twocode.parser.grammar.Rule">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.grammar.</code><code class="sig-name descname">Rule</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">symbol</span></em>, <em class="sig-param"><span class="n">pattern</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.Rule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.grammar.example_grammar">
+<code class="sig-prename descclassname">twocode.parser.grammar.</code><code class="sig-name descname">example_grammar</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.grammar.example_grammar" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.parser.indent_parser">
+<span id="twocode-parser-indent-parser-module"></span><h2>twocode.parser.indent_parser module<a class="headerlink" href="#module-twocode.parser.indent_parser" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="twocode.parser.indent_parser.IndentParser">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.indent_parser.</code><code class="sig-name descname">IndentParser</code><a class="headerlink" href="#twocode.parser.indent_parser.IndentParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="twocode.parser.indent_parser.IndentParser.check">
+<code class="sig-name descname">check</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">buffer</span></em>, <em class="sig-param"><span class="n">tree</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.indent_parser.IndentParser.check" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.indent_parser.IndentParser.match">
+<code class="sig-name descname">match</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.indent_parser.IndentParser.match" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.indent_parser.IndentParser.parse">
+<code class="sig-name descname">parse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lexer</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.indent_parser.IndentParser.parse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.indent_parser.IndentParser.validate">
+<code class="sig-name descname">validate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.indent_parser.IndentParser.validate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.indent_parser.gen_insert">
+<code class="sig-prename descclassname">twocode.parser.indent_parser.</code><code class="sig-name descname">gen_insert</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rules</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.indent_parser.gen_insert" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.indent_parser.gen_valid_indent">
+<code class="sig-prename descclassname">twocode.parser.indent_parser.</code><code class="sig-name descname">gen_valid_indent</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.indent_parser.gen_valid_indent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.indent_parser.itervalid_indent_consistent">
+<code class="sig-prename descclassname">twocode.parser.indent_parser.</code><code class="sig-name descname">itervalid_indent_consistent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">indents</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.indent_parser.itervalid_indent_consistent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.indent_parser.parse_block_tree">
+<code class="sig-prename descclassname">twocode.parser.indent_parser.</code><code class="sig-name descname">parse_block_tree</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">buffer</span></em>, <em class="sig-param"><span class="n">leave_token</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">pos</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.indent_parser.parse_block_tree" title="Permalink to this definition">¶</a></dt>
+<dd><p>parses into a tree of ranges, identifying nested blocks
+LEAVE has higher priority than ‘}’ and can leave without closing some brackets</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.indent_parser.skip_subs">
+<code class="sig-prename descclassname">twocode.parser.indent_parser.</code><code class="sig-name descname">skip_subs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pos</span></em>, <em class="sig-param"><span class="n">end</span></em>, <em class="sig-param"><span class="n">subtrees</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.indent_parser.skip_subs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.indent_parser.valid_indent_mixed">
+<code class="sig-prename descclassname">twocode.parser.indent_parser.</code><code class="sig-name descname">valid_indent_mixed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">indent</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.indent_parser.valid_indent_mixed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.indent_parser.valid_indent_odd">
+<code class="sig-prename descclassname">twocode.parser.indent_parser.</code><code class="sig-name descname">valid_indent_odd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">indent</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.indent_parser.valid_indent_odd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.indent_parser.valid_indent_order">
+<code class="sig-prename descclassname">twocode.parser.indent_parser.</code><code class="sig-name descname">valid_indent_order</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">indent</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.indent_parser.valid_indent_order" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.indent_parser.valid_inline_block">
+<code class="sig-prename descclassname">twocode.parser.indent_parser.</code><code class="sig-name descname">valid_inline_block</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.indent_parser.valid_inline_block" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.indent_parser.valid_tokens_empty_line">
+<code class="sig-prename descclassname">twocode.parser.indent_parser.</code><code class="sig-name descname">valid_tokens_empty_line</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tokens</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.indent_parser.valid_tokens_empty_line" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.parser.lexer">
+<span id="twocode-parser-lexer-module"></span><h2>twocode.parser.lexer module<a class="headerlink" href="#module-twocode.parser.lexer" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="twocode.parser.lexer.LexLanguage">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.lexer.</code><code class="sig-name descname">LexLanguage</code><a class="headerlink" href="#twocode.parser.lexer.LexLanguage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="twocode.parser.lexer.LexLanguage.form_model">
+<code class="sig-name descname">form_model</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.lexer.LexLanguage.form_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="twocode.parser.lexer.LexModel">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.lexer.</code><code class="sig-name descname">LexModel</code><a class="headerlink" href="#twocode.parser.lexer.LexModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py class">
+<dt id="twocode.parser.lexer.LexModel.Source">
+<em class="property">class </em><code class="sig-name descname">Source</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file</span></em>, <em class="sig-param"><span class="n">line</span></em>, <em class="sig-param"><span class="n">col</span></em>, <em class="sig-param"><span class="n">length</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.lexer.LexModel.Source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.lexer.LexModel.add_rule">
+<code class="sig-name descname">add_rule</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pattern</span></em>, <em class="sig-param"><span class="n">action</span><span class="o">=</span><span class="default_value">'pass'</span></em>, <em class="sig-param"><span class="n">token</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.lexer.LexModel.add_rule" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.lexer.LexModel.form_lexer">
+<code class="sig-name descname">form_lexer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.lexer.LexModel.form_lexer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="twocode.parser.lexer.Lexer">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.lexer.</code><code class="sig-name descname">Lexer</code><a class="headerlink" href="#twocode.parser.lexer.Lexer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py exception">
+<dt id="twocode.parser.lexer.Lexer.NoMatch">
+<em class="property">exception </em><code class="sig-name descname">NoMatch</code><a class="headerlink" href="#twocode.parser.lexer.Lexer.NoMatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="twocode.parser.lexer.Lexer.current">
+<code class="sig-name descname">current</code><em class="property"> = None</em><a class="headerlink" href="#twocode.parser.lexer.Lexer.current" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.lexer.Lexer.parse">
+<code class="sig-name descname">parse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">buffer</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.lexer.Lexer.parse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="twocode.parser.lexer.Token">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.lexer.</code><code class="sig-name descname">Token</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">type</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">data</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.lexer.Token" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.lexer.example_lex">
+<code class="sig-prename descclassname">twocode.parser.lexer.</code><code class="sig-name descname">example_lex</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.lexer.example_lex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.parser.parser">
+<span id="twocode-parser-parser-module"></span><h2>twocode.parser.parser module<a class="headerlink" href="#module-twocode.parser.parser" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="twocode.parser.parser.IncrementalParser">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.parser.</code><code class="sig-name descname">IncrementalParser</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rules</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.IncrementalParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>DESIGN:
+built to be fed tokens, can tell you when exactly matching becomes impossible
+useful for manual grammar for preprocessors</p>
+<p>you start with init_search() for a symbol
+IP expands that into more symbols, looking through all possible ways each symbol can be created
+creating a graph of incomplete nodes with those expecting raw tokens being the edge
+you can get to the same symbol by different paths
+so we merge them, creating nodes with multiple parents</p>
+<p>on push, feed the token into nodes expecting it and discard the rest
+if this was the last token the node needed it creates a copy of its parent and inserts itself into it
+looks what is needed next, expands into new edge nodes
+when this propagates to the required symbol, a full match is found</p>
+<dl class="py class">
+<dt id="twocode.parser.parser.IncrementalParser.Match">
+<em class="property">class </em><code class="sig-name descname">Match</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">parents</span></em>, <em class="sig-param"><span class="n">rule</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.IncrementalParser.Match" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py exception">
+<dt id="twocode.parser.parser.IncrementalParser.NoMatch">
+<em class="property">exception </em><code class="sig-name descname">NoMatch</code><a class="headerlink" href="#twocode.parser.parser.IncrementalParser.NoMatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="twocode.parser.parser.IncrementalParser.PatternContext">
+<em class="property">class </em><code class="sig-name descname">PatternContext</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">parser</span></em>, <em class="sig-param"><span class="n">pattern</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.IncrementalParser.PatternContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.parser.IncrementalParser.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.IncrementalParser.copy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.parser.IncrementalParser.init_search">
+<code class="sig-name descname">init_search</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">symbol</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.IncrementalParser.init_search" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.parser.IncrementalParser.match">
+<code class="sig-name descname">match</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.IncrementalParser.match" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.parser.IncrementalParser.parse">
+<code class="sig-name descname">parse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lexer</span></em>, <em class="sig-param"><span class="n">symbol</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.IncrementalParser.parse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.parser.IncrementalParser.pattern_context">
+<code class="sig-name descname">pattern_context</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">pattern</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.IncrementalParser.pattern_context" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.parser.IncrementalParser.possible">
+<code class="sig-name descname">possible</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.IncrementalParser.possible" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.parser.IncrementalParser.push">
+<code class="sig-name descname">push</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">token</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.IncrementalParser.push" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.parser.IncrementalParser.reduce">
+<code class="sig-name descname">reduce</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.IncrementalParser.reduce" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="twocode.parser.parser.Parser">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.parser.</code><code class="sig-name descname">Parser</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rules</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.Parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py exception">
+<dt id="twocode.parser.parser.Parser.NoMatch">
+<em class="property">exception </em><code class="sig-name descname">NoMatch</code><a class="headerlink" href="#twocode.parser.parser.Parser.NoMatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.parser.Parser.best_match">
+<code class="sig-name descname">best_match</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.Parser.best_match" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.parser.Parser.enum_matches">
+<code class="sig-name descname">enum_matches</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">symbol</span></em>, <em class="sig-param"><span class="n">at</span></em>, <em class="sig-param"><span class="n">symbol_len</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.Parser.enum_matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>builds a symbol, combining possible distributions</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.parser.Parser.first_match">
+<code class="sig-name descname">first_match</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">symbol</span></em>, <em class="sig-param"><span class="n">at</span></em>, <em class="sig-param"><span class="n">symbol_len</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.Parser.first_match" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.parser.Parser.match">
+<code class="sig-name descname">match</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">symbol</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.Parser.match" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.parser.Parser.parse">
+<code class="sig-name descname">parse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lexer</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.Parser.parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>push sequentially, at each position building from those before
+a complete match will have a buffer-length “file” symbol built at the last position</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.parser.Parser.push">
+<code class="sig-name descname">push</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">token</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.parser.Parser.push" title="Permalink to this definition">¶</a></dt>
+<dd><p>start with the raw token then reduce repeatedly
+reduce checks if any rule can build anything new   # there’s no expand/reduce
+“edge” being the most recently added submatches</p>
+<p>VARS:
+reduces - complete parsed submatches at a position</p>
+<blockquote>
+<div><p>{expr: {len: [(rule_call, [1, 13, 4]),..
+for each symbol, length, rule, distribution</p>
+</div></blockquote>
+<p>edge - unreduced lengths for each symbol at current position</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-twocode.parser.precedence">
+<span id="twocode-parser-precedence-module"></span><h2>twocode.parser.precedence module<a class="headerlink" href="#module-twocode.parser.precedence" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="twocode.parser.precedence.form_prec">
+<code class="sig-prename descclassname">twocode.parser.precedence.</code><code class="sig-name descname">form_prec</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pattern</span></em>, <em class="sig-param"><span class="n">ops</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">symbol</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">assoc</span><span class="o">=</span><span class="default_value">'left'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.precedence.form_prec" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.precedence.gen_valid_prec">
+<code class="sig-prename descclassname">twocode.parser.precedence.</code><code class="sig-name descname">gen_valid_prec</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rules</span></em>, <em class="sig-param"><span class="n">prec</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.precedence.gen_valid_prec" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.precedence.loops">
+<code class="sig-prename descclassname">twocode.parser.precedence.</code><code class="sig-name descname">loops</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rules</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.precedence.loops" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.precedence.pattern_match">
+<code class="sig-prename descclassname">twocode.parser.precedence.</code><code class="sig-name descname">pattern_match</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pattern</span></em>, <em class="sig-param"><span class="n">rule</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.precedence.pattern_match" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.parser.state_parser">
+<span id="twocode-parser-state-parser-module"></span><h2>twocode.parser.state_parser module<a class="headerlink" href="#module-twocode.parser.state_parser" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="twocode.parser.state_parser.Grammar">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.state_parser.</code><code class="sig-name descname">Grammar</code><a class="headerlink" href="#twocode.parser.state_parser.Grammar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py class">
+<dt id="twocode.parser.state_parser.Grammar.LookupItem">
+<em class="property">class </em><code class="sig-name descname">LookupItem</code><a class="headerlink" href="#twocode.parser.state_parser.Grammar.LookupItem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="twocode.parser.state_parser.Grammar.Rule">
+<em class="property">class </em><code class="sig-name descname">Rule</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pattern</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">''</span></em>, <em class="sig-param"><span class="n">allow_ws</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">symbol</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Grammar.Rule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#twocode.parser.state_parser.Rule" title="twocode.parser.state_parser.Rule"><code class="xref py py-class docutils literal notranslate"><span class="pre">twocode.parser.state_parser.Rule</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="twocode.parser.state_parser.Grammar.Symbol">
+<em class="property">class </em><code class="sig-name descname">Symbol</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">list</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">opt</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">var</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Grammar.Symbol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py class">
+<dt id="twocode.parser.state_parser.Grammar.Symbol.List">
+<em class="property">class </em><code class="sig-name descname">List</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">delim</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Grammar.Symbol.List" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Grammar.Symbol.Var">
+<code class="sig-name descname">Var</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Grammar.Symbol.Var" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Grammar.add_literals">
+<code class="sig-name descname">add_literals</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Grammar.add_literals" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Grammar.add_ops">
+<code class="sig-name descname">add_ops</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Grammar.add_ops" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map&lt;Tuple&lt;K,V&gt;&gt; parsed ‘&gt;&gt;’ as bit shift
+build operators from characters in grammar</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Grammar.add_symbol">
+<code class="sig-name descname">add_symbol</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">symbol</span></em>, <em class="sig-param"><span class="n">rules</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Grammar.add_symbol" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Grammar.form_rules">
+<code class="sig-name descname">form_rules</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Grammar.form_rules" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Grammar.gen_lookup">
+<code class="sig-name descname">gen_lookup</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rules</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Grammar.gen_lookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>DESIGN:
+lookup had this vision where at each position
+a single table access would move you to the next
+this works with rules made of terminals,
+but we need to know which nonterminals to split into
+and once awaiting a terminal, there’s no point in any lookup</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Grammar.gen_mov_rules">
+<code class="sig-name descname">gen_mov_rules</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Grammar.gen_mov_rules" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Grammar.gen_names">
+<code class="sig-name descname">gen_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Grammar.gen_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Grammar.gen_transform">
+<code class="sig-name descname">gen_transform</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">prototype_rules</span></em>, <em class="sig-param"><span class="n">rules</span></em>, <em class="sig-param"><span class="n">rule_copies</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Grammar.gen_transform" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Grammar.sub_ws">
+<code class="sig-name descname">sub_ws</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Grammar.sub_ws" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="twocode.parser.state_parser.Parser">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.state_parser.</code><code class="sig-name descname">Parser</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rules</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>INEFFICIENCY:
+grammar.py implements “allow_ws” by creating copies of rules interleaved with WS
+for the largest, 12 token long rules, this creates 2048 rules</p>
+<p>STATE PARSER:
+a different algorithm, does not use simple sequences
+each symbol now has a “next” integer and an optional “skip” integer
+accepting this symbol adds “next” to the position
+if “skip” isn’t None, we can add it and accept the symbol there instead</p>
+<p>opt, allow_ws and also lists can be implemented this way</p>
+<p>SURPRISES:
+skipping lookup table isn’t that simple, it can skip outside if it ends with an optional sequence
+so we allow several symbols and complete the rule at the same time</p>
+<p>the grammar has L-recursion: _WS -&gt; _WS _WS, expr_math and expr_compare
+it would start infinite branches, but the caching system makes it its own parent instead
+it works perfectly because completed matches build copies of their parents,
+creating possibly infinite _WS -&gt; _WS _WS reduction backwards</p>
+<p>a “func” shows twice in the tree on an ID token because it can be either type or type&lt;params&gt;</p>
+<dl class="py class">
+<dt id="twocode.parser.state_parser.Parser.Match">
+<em class="property">class </em><code class="sig-name descname">Match</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">parents</span></em>, <em class="sig-param"><span class="n">rule</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.Match" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt id="twocode.parser.state_parser.Parser.Match.delim">
+<code class="sig-name descname">delim</code><em class="property"> = '.   '</em><a class="headerlink" href="#twocode.parser.state_parser.Parser.Match.delim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.Match.enum_func">
+<em class="property">static </em><code class="sig-name descname">enum_func</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">match</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.Match.enum_func" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.Match.name_func">
+<em class="property">static </em><code class="sig-name descname">name_func</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">match</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.Match.name_func" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.Match.parents_str">
+<code class="sig-name descname">parents_str</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.Match.parents_str" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt id="twocode.parser.state_parser.Parser.NoMatch">
+<em class="property">exception </em><code class="sig-name descname">NoMatch</code><a class="headerlink" href="#twocode.parser.state_parser.Parser.NoMatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="twocode.parser.state_parser.Parser.PatternContext">
+<em class="property">class </em><code class="sig-name descname">PatternContext</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">parser</span></em>, <em class="sig-param"><span class="n">pattern</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.PatternContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.add_child">
+<em class="property">static </em><code class="sig-name descname">add_child</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rule</span></em>, <em class="sig-param"><span class="n">parent</span></em>, <em class="sig-param"><span class="n">pos</span></em>, <em class="sig-param"><span class="n">child</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.add_child" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.copy">
+<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.copy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.copy_node">
+<em class="property">static </em><code class="sig-name descname">copy_node</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.copy_node" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.create_nonterminal">
+<em class="property">static </em><code class="sig-name descname">create_nonterminal</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rule</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.create_nonterminal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.create_terminal">
+<em class="property">static </em><code class="sig-name descname">create_terminal</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">type</span></em>, <em class="sig-param"><span class="n">token</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.create_terminal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.init_search">
+<code class="sig-name descname">init_search</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">symbol</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.init_search" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.match">
+<code class="sig-name descname">match</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.match" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.parse">
+<code class="sig-name descname">parse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lexer</span></em>, <em class="sig-param"><span class="n">symbol</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.parse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.pattern_context">
+<code class="sig-name descname">pattern_context</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">pattern</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.pattern_context" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.possible">
+<code class="sig-name descname">possible</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.possible" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.push">
+<code class="sig-name descname">push</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">token</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.push" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="twocode.parser.state_parser.Parser.reduce">
+<code class="sig-name descname">reduce</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Parser.reduce" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="twocode.parser.state_parser.Rule">
+<em class="property">class </em><code class="sig-prename descclassname">twocode.parser.state_parser.</code><code class="sig-name descname">Rule</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">symbol</span></em>, <em class="sig-param"><span class="n">pattern</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Rule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py class">
+<dt id="twocode.parser.state_parser.Rule.Symbol">
+<em class="property">class </em><code class="sig-name descname">Symbol</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">next</span></em>, <em class="sig-param"><span class="n">skip</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.Rule.Symbol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>regular     next = +1, skip = None
+optional    next = +1, skip = +1
+list create next = +1, skip = +3
+list delim  next = +1, skip = +2
+list append next = -1, skip = None</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="twocode.parser.state_parser.example_grammar">
+<code class="sig-prename descclassname">twocode.parser.state_parser.</code><code class="sig-name descname">example_grammar</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#twocode.parser.state_parser.example_grammar" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.parser">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-twocode.parser" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Ondřej Műller
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

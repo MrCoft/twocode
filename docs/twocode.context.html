@@ -1,0 +1,412 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>twocode.context package &mdash; Twocode  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Twocode
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">twocode.context package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-twocode.context.basic_types">twocode.context.basic_types module</a></li>
+<li><a class="reference internal" href="#module-twocode.context.builtins">twocode.context.builtins module</a></li>
+<li><a class="reference internal" href="#module-twocode.context.core">twocode.context.core module</a></li>
+<li><a class="reference internal" href="#id1">twocode.context.core module</a></li>
+<li><a class="reference internal" href="#module-twocode.context.eval">twocode.context.eval module</a></li>
+<li><a class="reference internal" href="#module-twocode.context.exceptions">twocode.context.exceptions module</a></li>
+<li><a class="reference internal" href="#module-twocode.context.logging">twocode.context.logging module</a></li>
+<li><a class="reference internal" href="#module-twocode.context.node_types">twocode.context.node_types module</a></li>
+<li><a class="reference internal" href="#module-twocode.context.objects">twocode.context.objects module</a></li>
+<li><a class="reference internal" href="#module-twocode.context.operators">twocode.context.operators module</a></li>
+<li><a class="reference internal" href="#module-twocode.context.scope">twocode.context.scope module</a></li>
+<li><a class="reference internal" href="#module-twocode.context.setup">twocode.context.setup module</a></li>
+<li><a class="reference internal" href="#module-twocode.context.typing">twocode.context.typing module</a></li>
+<li><a class="reference internal" href="#id3">twocode.context.typing module</a></li>
+<li><a class="reference internal" href="#module-twocode.context">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Twocode</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>twocode.context package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/twocode.context.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="twocode-context-package">
+<h1>twocode.context package<a class="headerlink" href="#twocode-context-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-twocode.context.basic_types">
+<span id="twocode-context-basic-types-module"></span><h2>twocode.context.basic_types module<a class="headerlink" href="#module-twocode.context.basic_types" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="twocode.context.basic_types.add_basic_types">
+<code class="sig-prename descclassname">twocode.context.basic_types.</code><code class="sig-name descname">add_basic_types</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.basic_types.add_basic_types" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.context.builtins">
+<span id="twocode-context-builtins-module"></span><h2>twocode.context.builtins module<a class="headerlink" href="#module-twocode.context.builtins" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="twocode.context.builtins.add_builtins">
+<code class="sig-prename descclassname">twocode.context.builtins.</code><code class="sig-name descname">add_builtins</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.builtins.add_builtins" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.context.core">
+<span id="twocode-context-core-module"></span><h2>twocode.context.core module<a class="headerlink" href="#module-twocode.context.core" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="twocode.context.core.add_core">
+<code class="sig-prename descclassname">twocode.context.core.</code><code class="sig-name descname">add_core</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.core.add_core" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.context.core.add_exceptions">
+<code class="sig-prename descclassname">twocode.context.core.</code><code class="sig-name descname">add_exceptions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.core.add_exceptions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="id1">
+<h2>twocode.context.core module<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-0"></span><dl class="py function">
+<dt id="id0">
+<code class="sig-prename descclassname">twocode.context.core.</code><code class="sig-name descname">add_core</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="id2">
+<code class="sig-prename descclassname">twocode.context.core.</code><code class="sig-name descname">add_exceptions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.context.eval">
+<span id="twocode-context-eval-module"></span><h2>twocode.context.eval module<a class="headerlink" href="#module-twocode.context.eval" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="twocode.context.eval.add_eval">
+<code class="sig-prename descclassname">twocode.context.eval.</code><code class="sig-name descname">add_eval</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.eval.add_eval" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.context.exceptions">
+<span id="twocode-context-exceptions-module"></span><h2>twocode.context.exceptions module<a class="headerlink" href="#module-twocode.context.exceptions" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="twocode.context.exceptions.add_exceptions">
+<code class="sig-prename descclassname">twocode.context.exceptions.</code><code class="sig-name descname">add_exceptions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.exceptions.add_exceptions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.context.logging">
+<span id="twocode-context-logging-module"></span><h2>twocode.context.logging module<a class="headerlink" href="#module-twocode.context.logging" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="twocode.context.logging.add_logging">
+<code class="sig-prename descclassname">twocode.context.logging.</code><code class="sig-name descname">add_logging</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.logging.add_logging" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.context.node_types">
+<span id="twocode-context-node-types-module"></span><h2>twocode.context.node_types module<a class="headerlink" href="#module-twocode.context.node_types" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="twocode.context.node_types.add_node_types">
+<code class="sig-prename descclassname">twocode.context.node_types.</code><code class="sig-name descname">add_node_types</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.node_types.add_node_types" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.context.objects">
+<span id="twocode-context-objects-module"></span><h2>twocode.context.objects module<a class="headerlink" href="#module-twocode.context.objects" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="twocode.context.objects.add_objects">
+<code class="sig-prename descclassname">twocode.context.objects.</code><code class="sig-name descname">add_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.objects.add_objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.context.objects.sign_objects">
+<code class="sig-prename descclassname">twocode.context.objects.</code><code class="sig-name descname">sign_objects</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.objects.sign_objects" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.context.operators">
+<span id="twocode-context-operators-module"></span><h2>twocode.context.operators module<a class="headerlink" href="#module-twocode.context.operators" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="twocode.context.operators.add_operators">
+<code class="sig-prename descclassname">twocode.context.operators.</code><code class="sig-name descname">add_operators</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.operators.add_operators" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.context.operators.decrement">
+<code class="sig-prename descclassname">twocode.context.operators.</code><code class="sig-name descname">decrement</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.operators.decrement" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.context.operators.increment">
+<code class="sig-prename descclassname">twocode.context.operators.</code><code class="sig-name descname">increment</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.operators.increment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.context.scope">
+<span id="twocode-context-scope-module"></span><h2>twocode.context.scope module<a class="headerlink" href="#module-twocode.context.scope" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="twocode.context.scope.add_scope">
+<code class="sig-prename descclassname">twocode.context.scope.</code><code class="sig-name descname">add_scope</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.scope.add_scope" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.context.scope.init_scope">
+<code class="sig-prename descclassname">twocode.context.scope.</code><code class="sig-name descname">init_scope</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.scope.init_scope" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="twocode.context.scope.scope_builtins">
+<code class="sig-prename descclassname">twocode.context.scope.</code><code class="sig-name descname">scope_builtins</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.scope.scope_builtins" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.context.setup">
+<span id="twocode-context-setup-module"></span><h2>twocode.context.setup module<a class="headerlink" href="#module-twocode.context.setup" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="twocode.context.setup.add_setup">
+<code class="sig-prename descclassname">twocode.context.setup.</code><code class="sig-name descname">add_setup</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.setup.add_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>a solution to the problem of building the context</p>
+<p>gives the context some temporary functionality
+that removes sign-related dependency between its parts</p>
+<p>DO NOT USE THE CONTEXT WHILE BUILDING IT:
+we can’t call interpreted functions, context eval or declare
+constructs work because native does not swap the frame</p>
+<p>SIGN:
+a proper sign() would be useful from the very start
+possible solutions:
+- an alternate eval that stores types to resolve them later</p>
+<blockquote>
+<div><p>break eval into instructions, temporarily replace term_id</p>
+</div></blockquote>
+<ul class="simple">
+<li><dl class="simple">
+<dt>temporary context.scope</dt><dd><p>the same as an alternate eval, really
+it would use a special name resolution</p>
+</dd>
+</dl>
+</li>
+</ul>
+<p>we choose the temp scope</p>
+<p>DELAYED TYPING:
+scope looks for names in context.get_builtins()
+and returns None instead of failing
+sign and add_vars work immediatelly, skipping some types
+flush runs incomplete typing again</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-twocode.context.typing">
+<span id="twocode-context-typing-module"></span><h2>twocode.context.typing module<a class="headerlink" href="#module-twocode.context.typing" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="twocode.context.typing.add_typing">
+<code class="sig-prename descclassname">twocode.context.typing.</code><code class="sig-name descname">add_typing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.typing.add_typing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Formats the given value as a human readable string using the given units.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>context</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – context</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="twocode.context.typing.sign_typing">
+<code class="sig-prename descclassname">twocode.context.typing.</code><code class="sig-name descname">sign_typing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#twocode.context.typing.sign_typing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="id3">
+<h2>twocode.context.typing module<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-1"></span><dl class="py function">
+<dt id="id4">
+<code class="sig-prename descclassname">twocode.context.typing.</code><code class="sig-name descname">add_typing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id4" title="Permalink to this definition">¶</a></dt>
+<dd><p>Formats the given value as a human readable string using the given units.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>context</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) – context</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="id5">
+<code class="sig-prename descclassname">twocode.context.typing.</code><code class="sig-name descname">sign_typing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">context</span></em><span class="sig-paren">)</span><a class="headerlink" href="#id5" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-twocode.context">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-twocode.context" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Ondřej Műller
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
