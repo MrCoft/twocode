@@ -2,7 +2,12 @@ from twocode.utils.code import InlineException, type_check_decor
 from twocode import utils
 from typing import Union
 
-def add_typing(context):
+def add_typing(context: str):
+    """
+    Formats the given value as a human readable string using the given units.
+
+    :param context: context
+    """
     Class, Func = [context.obj[name] for name in "Class, Func".split(", ")]
     wraps = context.native_wraps
 

@@ -74,7 +74,7 @@ map = {
 }
 # missing: try_chain, finally_block, try_block, catch_block
 
-def map_func_def(node):
+def map_func_def(node: str):
     buf = []
     block = str(node.block)
     arrow = block.startswith("return ") and "\n" not in block and not node.id and not node.return_type
@@ -154,7 +154,7 @@ map["if_chain"] = map_if_chain
 # type_params
 
 
-def wrap_block(node, start_block=True, expand=False):
+def wrap_block(node, start_block=True, expand: bool=False):
     margin = lambda: " " if start_block else ""
     lines = str(node).splitlines()
     if not lines:
