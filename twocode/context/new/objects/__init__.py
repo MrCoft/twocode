@@ -3,6 +3,7 @@ from .ref import Ref
 from .object import Object as _Object
 # import twocode.context.new.objects.attr as attr
 from .attr import *
+from . import create
 
 
 # noinspection PyPep8Naming
@@ -61,25 +62,7 @@ def add_objects(context):
 
 
 
-    def create(func):
-        name = func.__name__
-        def f(*args, **kwargs):
-            type = context.objects[name]
-            obj = Ref.Object(type)
-            func(obj, *args, **kwargs)
-            return obj
-        context.obj[name] = f
-    @create
-    def Func(this, args=None, return_type=None, code=None, native=None, sign=None):
-        if args is None: args = []
-        this.frame = None
-        # OPTIM: pass_args
-        this.args = args
-        this.return_type = dr@ return_type
-        this.code = code
-        this.native = native
-        if sign:
-            context.setup.sign(this, sign)
+    
     @create
     def Arg(this, name=None, type=None, default_=None, pack=None, macro_=False):
         this.name = name

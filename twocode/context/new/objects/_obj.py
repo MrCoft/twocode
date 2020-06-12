@@ -38,8 +38,12 @@
 
     native_wraps
 
-    obj.Object, .Ref
 
+    ->
+        _c.objects.get_internals
+        _c.objects.create.Class(
+        _c.objects.new.Class(
+        _c.objects.types.Class
+        _c.objects.Object - may be magic
 
-    .objects, create,  classes
 '''
