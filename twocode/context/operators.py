@@ -278,7 +278,7 @@ def add_operators(context):
             code = builtins.open(file, encoding="utf-8").read()
             # context.declare("__file__", context.wrap(file), String)
             # in the scope?!?? not here, not in the module
-        if type(code) is str:
+        if isinstance(code, str):
             code = context.parse(code)
         else:
             code = context.unwrap_code(code)

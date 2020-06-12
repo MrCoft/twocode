@@ -40,12 +40,19 @@
 
 
     ->
-        _c.objects.get_internals
-        _c.objects.new.Class(
         _c.objects.types.Class
         _c.objects.Object - may be magic
 
 
-    setup(path) -
+    impl to types, to phases:
+     - create class
+     - add vars
+     - add func impls with sign metadata
+
+     dependencies:
+      - on context.objects.create
+      - on
+
+
 
 '''
