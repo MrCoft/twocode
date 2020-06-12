@@ -63,26 +63,8 @@ def add_objects(context):
 
 
     
-    @create
-    def Arg(this, name=None, type=None, default_=None, pack=None, macro_=False):
-        this.name = name
-        this.type = dr@ type
-        this.default_ = default_
-        this.pack = pack
-        this.macro_ = macro_
-    @create
-    def Class(this):
-        this.__fields__ = {}
-        this.__base__ = None
-        this.__frame__ = None
-    @create
-    def Attr(this, type=None, default_=None):
-        this.type = dr@ type
-        this.default_ = default_
-    @create
-    def BoundMethod(this, obj=None, func_=None):
-        this.obj = dr@ obj
-        this.func_ = dr@ func_
+
+    
 
     context.objects = utils.Object()
     context.objects.Class = None
