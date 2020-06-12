@@ -66,20 +66,7 @@ def add_objects(context):
 
     
 
-    context.objects = utils.Object()
-    context.objects.Class = None
-    Class = context.obj.Class()
-    Class.__type__ = Class
-    context.objects.Class = Class
-    def gen_class(name):
-        cls = context.obj.Class()
-        context.objects[name] = cls
-        return cls
-    Func = gen_class("Func")
-    Arg = gen_class("Arg")
-    Attr = gen_class("Attr")
-    BoundMethod = gen_class("BoundMethod")
-
+   
 def sign_objects(context):
     Func, Arg, Class, Attr, BoundMethod = [context.objects[name] for name in "Func, Arg, Class, Attr, BoundMethod".split(", ")]
     w, uw, r, dr, op = [context.type_magic[name] for name in "w, uw, r, dr, op".split(", ")]
