@@ -31,4 +31,15 @@
             basic container types
 
     """
+
+
+
+    w, uw, r, dr, op = [context.type_magic[name] for name in "w, uw, r, dr, op".split(", ")]
+
+    native_wraps
+
+    obj.Object, .Ref
+
+
+    .objects, create,  classes
 '''
