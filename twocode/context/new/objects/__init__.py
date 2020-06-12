@@ -1,7 +1,8 @@
 import types
 from .ref import Ref
 from .object import Object as _Object
-import twocode.context.new.objects.attr as attr
+# import twocode.context.new.objects.attr as attr
+from .attr import *
 
 
 # noinspection PyPep8Naming

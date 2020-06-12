@@ -1,14 +1,15 @@
+import twocode.context.new as _c
 from twocode.context.new.setup import type_check_decor
 
 
 # @inline_exc(AttributeError)
 @type_check_decor()  # obj=context.obj.Ref)
-def getattr(obj, name):
+def getattr(obj, name: str):
     """
         returns wrapped value
     """
     try:
-        return get_internals(obj, name, inline_exc=True)
+        return _c.objects.get_internals(obj, name, inline_exc=True)
     except InlineException:
         pass
     fields = context.inherit_fields(obj.__type__)
