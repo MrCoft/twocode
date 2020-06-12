@@ -1,7 +1,7 @@
 import twocode.context.new as _c
 
 
-@inline_exc(AttributeError)
+# @inline_exc(AttributeError)
 def set_internals(obj, name, value):
     if name == "__type__":
         raise InlineException("can't set attribute {} of {}".format(escape(name)))

@@ -1,7 +1,8 @@
+from twocode.context.new.setup import type_check_decor
 
 
-@inline_exc(AttributeError)
-@type_check_decor(obj=context.obj.Ref)
+# @inline_exc(AttributeError)
+@type_check_decor()  # obj=context.obj.Ref)
 def setattr(obj, name, value):
     try:
         get_internals(obj, name, inline_exc=True)

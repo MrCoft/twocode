@@ -1,7 +1,7 @@
 import twocode.context.new as _c
 
 
-@inline_exc(AttributeError)
+# @inline_exc(AttributeError)
 def get_internals(obj, name):
     """
         attributes directly accessible from within the runtime are clunky to work with from python

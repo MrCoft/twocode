@@ -1,7 +1,8 @@
+from twocode.context.new.setup import type_check_decor
 
 
-@inline_exc(AttributeError)
-@type_check_decor(obj=context.obj.Ref)
+# @inline_exc(AttributeError)
+@type_check_decor()  # obj=context.obj.Ref)
 def getattr(obj, name):
     """
         returns wrapped value
@@ -31,3 +32,4 @@ def getattr(obj, name):
             pass
     raise InlineException("{} object has no attribute {}".format(uw@ context.call_method(context.AttrRefs(obj).__type__, "source"), escape(name)))
     raise InlineException("{} object has no attribute {}".format(op.qualname(obj.__type__)), escape(name))
+

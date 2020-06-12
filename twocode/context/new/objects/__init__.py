@@ -9,7 +9,7 @@ def Object(__type__, **kwargs):
     return Ref(_Object(__type__, **kwargs), __type__)
 
 
-global_mod = types.SimpleNamespace(**attr)
+global_mod = types.SimpleNamespace()  # attr)
 
 '''
 from twocode import utils
