@@ -7,4 +7,3 @@ def Attr(type=None, default_=None):
     this.type = dr@ type
     this.default_ = default_
     return this
-

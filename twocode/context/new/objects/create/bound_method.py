@@ -7,4 +7,3 @@ def BoundMethod(obj=None, func_=None):
     this.obj = dr@ obj
     this.func_ = dr@ func_
     return this
-

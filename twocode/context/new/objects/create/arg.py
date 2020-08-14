@@ -10,4 +10,3 @@ def Arg(name=None, type=None, default_=None, pack=None, macro_=False):
     this.pack = pack
     this.macro_ = macro_
     return this
-

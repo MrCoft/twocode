@@ -9,4 +9,3 @@ def hasattr(obj, name):
         return True
     except InlineException:
         return False
-

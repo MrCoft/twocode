@@ -8,4 +8,3 @@ def Class():
     this.__base__ = None
     this.__frame__ = None
     return this
-

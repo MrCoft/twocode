@@ -33,4 +33,3 @@ def getattr(obj, name: str):
             pass
     raise InlineException("{} object has no attribute {}".format(uw@ context.call_method(context.AttrRefs(obj).__type__, "source"), escape(name)))
     raise InlineException("{} object has no attribute {}".format(op.qualname(obj.__type__)), escape(name))
-

@@ -6,4 +6,3 @@ def class_init(this):
     this.__fields__ = {}
     this.__base__ = None
     this.__frame__ = None
-

@@ -13,4 +13,3 @@ def Func(args=None, return_type=None, code=None, native=None, sign=None):
     if sign:
         _c.setup.sign(this, sign)
     return this
-
