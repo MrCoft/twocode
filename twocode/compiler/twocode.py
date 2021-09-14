@@ -3,7 +3,9 @@ import ast
 import json
 import inspect
 
-from .wrapped_class import wrap_class_def
+from .wrap_class import wrap_class_def
+from .wrap_func import wrap_func_def
+from .module_imports import import_module
 
 class Twocode:
     def __init__(self):
@@ -19,12 +21,19 @@ class Twocode:
 
         for stmt in code.body:
             if isinstance(stmt, ast.ClassDef):
-                cls = wrap_class_def(stmt, filename=filename)
+                cls = wrap_func_def(stmt, filename=filename)
                 context_globals[stmt.name] = cls
             elif isinstance(stmt, ast.FunctionDef):
-                pass
+                func = wrap_func_def(stmt, filename=filename)
+                context_globals[stmt.name] = func
+            elif isinstance(stmt, ast.Import):
+                # ImportFrom
+                for alias in stmt.names:
+                    module = import_module(alias.name, filename=filename)
+                    asname = alias.name or alias.asname
+                    context_globals[asname] = module
             else:
                 module_node = ast.Module([stmt], type_ignores=[])
-                print(ast.unparse(module_node))
+                # print(ast.unparse(module_node))
                 # todo: modify stack trace
                 exec(compile(module_node, filename, mode='exec'), context_globals, context_globals)

@@ -5,7 +5,7 @@ class Cls:
         self.x = 2
 
     def method(self):
-        print("Printing", self.x)
+        pass # print("Printing", self.x)
 
 Cls.__2c_source__ = ast.parse('''
 class Cls:
@@ -17,7 +17,7 @@ class Cls:
 ''')
 
 cls = Cls()
-print('tst', dir(cls.__class__))
+# print('tst', dir(cls.__class__))
 cls.method()
 Cls.__2c_source__ = ast.parse('''
 class Cls:
@@ -32,6 +32,6 @@ class Cls:
 ''')
 # cls = Cls()
 cls.method()
-print('tst', dir(cls.__class__))
+# print('tst', dir(cls.__class__))
 
-print(cls.__class__)
+# print(cls.__class__)
