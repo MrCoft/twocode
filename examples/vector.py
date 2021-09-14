@@ -35,7 +35,7 @@ class Compiler:
 
     @staticmethod
     def inline_nonlocals(func):
-        print(func.__closure__[0])
+        print(func.__closure__)
         closure = inspect.getclosurevars(func)
         scope = {}
         scope.update(closure.builtins)
