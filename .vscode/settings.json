@@ -1,5 +1,20 @@
 {
     "python.linting.flake8Enabled": true,
     "python.linting.enabled": true,
-    "python.pythonPath": "./venv/scripts/python.exe"
+    "python.pythonPath": "./venv/scripts/python.exe",
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "./tests",
+        "-p",
+        "test_*.py"
+    ],
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": true,
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    "triggerTaskOnSave.tasks": {
+        "test": [
+            "**/*.py"
+        ],
+    }
 }
