@@ -190,24 +190,52 @@ class Compiler:
         new_func = edit.compile_func()
         return new_func
 
-    @ staticmethod
+    @staticmethod
+    def inline_constants(func):
+        # is_var_constant
+            # is not an argument
+            # is written to once
+            # is immutable - not an object, is primitive
+            # THEN replace all uses with value
+            # if repr is <= 256 chars, we can replace more uses, else keep it
+            # inline_constants
+        pass
+
+    @staticmethod
     def expand_constants(func):
-        # TODO: evaluate constant ifs
-        # TODO: expand constant for loops
+        # is_func_pure
+        # e.g. NO for print
+        # YES for list, map, math, boolean expressions
+        # @Compiler.pure
+        # if method, doesn't modify self
+        # doesn't mutate anything
+
+        # is_node_constant
+        # is primitive
+        # or pure call on constant
+
+        # replace ifs with True or False
+        # unroll loops
         return func
 
     @ staticmethod
     def resolve_evals(func):
         # TODO: resolved evals, getattrs and setattrs
         return func
+    
+    @staticmethod
+    def DCE(func):
+        # TODO: remove if False, unused vars
+        return func
 
 
 def gen_vector(dim, type, *, coords=None):
     class Vector:
+        # Compiler.DCE
         # @Compiler.resolve_evals
         # @Compiler.expand_constants
-        @ Compiler.inline_nonlocals
-        @ Compiler.signature(['x', 'y'])
+        @Compiler.inject_nonlocals
+        @Compiler.signature(['x', 'y'])
         def __init__(self, *_, **__):
             if coords:
                 for c in coords:
