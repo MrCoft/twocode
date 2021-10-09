@@ -3,10 +3,25 @@ import ast
 import textwrap
 
 
-class Compiler:
-    @staticmethod
-    def signature(args):
-        def wrap(func):
+class CodeEditor:
+    def __init__(self) -> None:
+        self.source_func = None
+        self.code = None
+
+    @property
+    def name(self):
+        if self.source_func is not None:
+            return self.source_func.__name__
+
+    @property
+    def filename(self):
+        if self.source_func is not None:
+            return inspect.getsourcefile(self.source_func)
+
+    def load(self, obj):
+        if inspect.isfunction(obj):
+            func = obj
+            self.source_func = func
             filename = inspect.getsourcefile(func)
             if hasattr(func, '__2c_source__'):
                 source = ast.unparse(func.__2c_source__)
@@ -15,6 +30,49 @@ class Compiler:
                 source = textwrap.dedent(source)
             code = ast.parse(source, mode='exec', filename=filename)
             code: ast.FunctionDef = code.body[0]
+            self.code = code
+
+    def compile_func(self):
+        scope = {}
+        closure = inspect.getclosurevars(self.source_func)
+        scope.update(closure.globals)
+        scope['nonlocals'] = closure.nonlocals
+
+        code_wrap = ast.FunctionDef('closure', ast.arguments(
+            posonlyargs=[],
+            args=[],
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[]
+        ), [
+            *map(lambda name: ast.Assign(targets=[ast.Name(name, ctx=ast.Store())],
+                                         value=ast.Subscript(
+                value=ast.Name(id='nonlocals', ctx=ast.Load()),
+                slice=ast.Constant(value=name),
+                ctx=ast.Load())
+            ), closure.nonlocals.keys()),
+            self.code,
+            ast.Return(
+                value=ast.Name(id=self.name, ctx=ast.Load())
+            )
+        ], decorator_list=[])
+
+        code_obj = ast.Module([code_wrap], type_ignores=[])
+        ast.fix_missing_locations(code_obj)
+        code_obj = compile(code_obj, filename=self.filename, mode='exec')
+        exec(code_obj, scope)
+        new_func = scope['closure']()
+        new_func.__2c_source__ = self.code
+        return new_func
+
+
+class Compiler:
+    @staticmethod
+    def signature(args):
+        def wrap(func):
+            edit = CodeEditor()
+            edit.load(func)
+            code: ast.FunctionDef = edit.code
             code.decorator_list = []
             code.args = ast.arguments(
                 posonlyargs=[],
@@ -24,76 +82,31 @@ class Compiler:
                 kw_defaults=[],
                 defaults=[]
             )
-            scope = {}
-            closure = inspect.getclosurevars(func)
-            scope.update(closure.globals)
-            scope['nonlocals'] = closure.nonlocals
-            # put in function
-
-            def create_constant_node(value):
-                ast.parse(source, mode='exec', filename=filename)
-            code_wrap = ast.FunctionDef('closure', ast.arguments(
-                posonlyargs=[],
-                args=[],
-                kwonlyargs=[],
-                kw_defaults=[],
-                defaults=[]
-            ), [
-                *map(lambda name: ast.Assign(targets=[ast.Name(name, ctx=ast.Store())],
-                     value=ast.Subscript(
-                    value=ast.Name(id='nonlocals', ctx=ast.Load()),
-                    slice=ast.Constant(value=name),
-                    ctx=ast.Load())
-                ), closure.nonlocals.keys()),
-                code,
-                ast.Return(
-                    value=ast.Name(id=func.__name__, ctx=ast.Load())
-                )
-            ], decorator_list=[])
-
-            code_obj = ast.Module([code_wrap], type_ignores=[])
-            ast.fix_missing_locations(code_obj)
-            code_obj = compile(code_obj, filename=filename, mode='exec')
-            exec(code_obj, scope)
-            print('scope', scope['closure'])
-            new_func = scope['closure']()
-            print(new_func)
-            new_func.__2c_source__ = code
+            new_func = edit.compile_func()
             return new_func
         return wrap
 
-    @ staticmethod
+    @staticmethod
     def inline_nonlocals(func):
+        edit = CodeEditor()
+        edit.load(func)
+        code = edit.code
+        func_code: ast.FunctionDef = edit.code
         closure = inspect.getclosurevars(func)
-        scope = {}
-        scope.update(closure.nonlocals)
-
-        filename = inspect.getsourcefile(func)
-        if hasattr(func, '__2c_source__'):
-            source = ast.unparse(func.__2c_source__)
-        else:
-            source = inspect.getsource(func)
-            source = textwrap.dedent(source)
-        source = textwrap.dedent(source)
-        print('src', source)
-        func_code = ast.parse(source, mode='exec', filename=filename)
-        func_code: ast.FunctionDef = func_code.body[0]
-        used_names = sorted({node.id for node in ast.walk(func_code) if isinstance(node, ast.Name)})
+        used_names = sorted({node.id for node in ast.walk(
+            func_code) if isinstance(node, ast.Name)})
         for name, value in closure.nonlocals.items():
             free_name = 'free_name'
 
             value_repr = repr(value)
-            code = ast.parse(value_repr, mode='eval', filename=filename)
+            code = ast.parse(value_repr, mode='eval', filename=edit.filename)
             code = code.body
-            print(code)
             assign_node = ast.Assign(
                 targets=[ast.Name(id=free_name, ctx=ast.Store())],
                 value=code
             )
-            print(ast.dump(assign_node))
-            ast.fix_missing_locations(assign_node)
-            print('an', ast.unparse(assign_node))
             func_code.body = [assign_node, *func_code.body]
+
             class RewriteName(ast.NodeTransformer):
                 def visit_Name(self, node):
                     if node.id == name:
@@ -101,9 +114,8 @@ class Compiler:
                     else:
                         return node
             RewriteName().visit(func_code)
-        ast.fix_missing_locations(func_code)
-        print('nl', ast.unparse(func_code))
-        return func
+        new_func = edit.compile_func()
+        return new_func
 
     @ staticmethod
     def expand_constants(func):
@@ -136,4 +148,4 @@ Float2 = gen_vector(2, float, coords='xy')
 print(ast.unparse(Float2.__init__.__2c_source__))
 
 vec = Float2(1, 2)
-print(vec, dir(vec))
+print(vec, dir(vec), vec.x)
