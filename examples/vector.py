@@ -18,6 +18,10 @@ class CodeEditor:
         if self.source_func is not None:
             return inspect.getsourcefile(self.source_func)
 
+    def get_scope(self):
+        if self.source_func is not None:
+            return Scope.from_func(self.source_func)
+
     def load(self, obj):
         if inspect.isfunction(obj):
             func = obj
@@ -33,37 +37,111 @@ class CodeEditor:
             self.code = code
 
     def compile_func(self):
-        scope = {}
-        closure = inspect.getclosurevars(self.source_func)
-        scope.update(closure.globals)
-        scope['nonlocals'] = closure.nonlocals
+        scope = Scope.from_func(self.source_func)
+        func = scope.eval(self.code)
+        return func
 
-        code_wrap = ast.FunctionDef('closure', ast.arguments(
+    @staticmethod
+    def create_constant_node(value):
+        value_repr = repr(value)
+        node = ast.parse(value_repr, mode='eval', filename='<twocode>')
+        node = node.body
+        return node
+
+
+class Scope:
+    def __init__(self) -> None:
+        self.builtins = {}
+        self.globals = {}
+        self.nonlocals = {}
+        self.var_names = set()
+        self.filename = None
+
+    @staticmethod
+    def from_func(func):
+        scope = Scope()
+        closure = inspect.getclosurevars(func)
+        scope.builtins = closure.builtins
+        scope.globals = closure.globals
+        scope.nonlocals = closure.nonlocals
+        edit = CodeEditor()
+        edit.load(func)
+        scope.var_names = {node.id for node in ast.walk(
+            edit.code) if isinstance(node, ast.Name)}
+        args = edit.code.args
+        for arg_list in [args.posonlyargs, args.args, args.kwonlyargs, [args.vararg, args.kwarg]]:
+            for arg in arg_list:
+                if arg is None:
+                    continue
+                scope.var_names.add(arg.arg)
+        for outer_scope in [scope.builtins, scope.globals, scope.nonlocals]:
+            scope.var_names -= outer_scope.keys()
+        scope.filename = inspect.getsourcefile(func)
+        return scope
+
+    @property
+    def all_used_names(self) -> set[str]:
+        names = set()
+        names.update(self.builtins.keys())
+        names.update(self.globals.keys())
+        names.update(self.nonlocals.keys())
+        names.update(self.var_names)
+        return names
+
+    def free_name(self, name=None):
+        names = self.all_used_names
+        if name:
+            s = name
+            num = 1
+            while s in names:
+                num += 1
+                s = f'{name}_{num}'
+            return s
+        else:
+            num = 0
+            s = '_0'
+            while s in names:
+                num += 1
+                s = f'_{num}'
+            return s
+
+    def eval(self, node):
+        scope = {}
+        scope.update(self.globals)
+        scope['nonlocals'] = self.nonlocals
+        args = ast.arguments(
             posonlyargs=[],
             args=[],
             kwonlyargs=[],
             kw_defaults=[],
             defaults=[]
-        ), [
-            *map(lambda name: ast.Assign(targets=[ast.Name(name, ctx=ast.Store())],
-                                         value=ast.Subscript(
+        )
+        body = [node]
+
+        for name in self.nonlocals.keys():
+            assign_node = ast.Assign(targets=[ast.Name(name, ctx=ast.Store())],
+                                     value=ast.Subscript(
                 value=ast.Name(id='nonlocals', ctx=ast.Load()),
                 slice=ast.Constant(value=name),
                 ctx=ast.Load())
-            ), closure.nonlocals.keys()),
-            self.code,
-            ast.Return(
-                value=ast.Name(id=self.name, ctx=ast.Load())
             )
-        ], decorator_list=[])
+            body.insert(0, assign_node)
 
-        code_obj = ast.Module([code_wrap], type_ignores=[])
-        ast.fix_missing_locations(code_obj)
-        code_obj = compile(code_obj, filename=self.filename, mode='exec')
+        name = None
+        if isinstance(node, ast.FunctionDef):
+            name = node.name
+        body.append(ast.Return(
+            value=ast.Name(id=name, ctx=ast.Load())
+        ))
+
+        code = ast.FunctionDef('closure', args, body, decorator_list=[])
+        code = ast.Module([code], type_ignores=[])
+        ast.fix_missing_locations(code)
+        code_obj = compile(code, filename=self.filename, mode='exec')
         exec(code_obj, scope)
-        new_func = scope['closure']()
-        new_func.__2c_source__ = self.code
-        return new_func
+        obj = scope['closure']()
+        obj.__2c_source__ = node
+        return obj
 
 
 class Compiler:
@@ -87,25 +165,20 @@ class Compiler:
         return wrap
 
     @staticmethod
-    def inline_nonlocals(func):
+    def inject_nonlocals(func):
         edit = CodeEditor()
         edit.load(func)
-        code = edit.code
         func_code: ast.FunctionDef = edit.code
-        closure = inspect.getclosurevars(func)
-        used_names = sorted({node.id for node in ast.walk(
-            func_code) if isinstance(node, ast.Name)})
-        for name, value in closure.nonlocals.items():
-            free_name = 'free_name'
-
-            value_repr = repr(value)
-            code = ast.parse(value_repr, mode='eval', filename=edit.filename)
-            code = code.body
+        scope = edit.get_scope()
+        for name, value in list(scope.nonlocals.items()):
+            del scope.nonlocals[name]
+            free_name = scope.free_name(name)
+            value_node = CodeEditor.create_constant_node(value)
             assign_node = ast.Assign(
                 targets=[ast.Name(id=free_name, ctx=ast.Store())],
-                value=code
+                value=value_node
             )
-            func_code.body = [assign_node, *func_code.body]
+            func_code.body.insert(0, assign_node)
 
             class RewriteName(ast.NodeTransformer):
                 def visit_Name(self, node):
