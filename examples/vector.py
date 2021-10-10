@@ -144,6 +144,16 @@ class Scope:
         return obj
 
 
+def class_method_decorator(func):
+    class ClassMethodDecorator:
+        def __init__(self, method) -> None:
+            self.method = method
+
+        def __set_name__(self, owner, name):
+            return func(self.method, owner)
+    return ClassMethodDecorator
+
+
 class Compiler:
     @staticmethod
     def signature(args):
@@ -193,16 +203,33 @@ class Compiler:
     @staticmethod
     def inline_constants(func):
         # is_var_constant
-            # is not an argument
-            # is written to once
-            # is immutable - not an object, is primitive
-            # THEN replace all uses with value
-            # if repr is <= 256 chars, we can replace more uses, else keep it
-            # inline_constants
+        # is not an argument
+        # is written to once
+        # is immutable - not an object, is primitive
+        # THEN replace all uses with value
+        # if repr is <= 256 chars, we can replace more uses, else keep it
+        # inline_constants
         pass
 
     @staticmethod
-    def expand_constants(func):
+    @class_method_decorator
+    def expand_constants(func, cls):
+        print(func, cls)
+
+        # typing
+        # pure analysis
+        # replace cascade with values
+
+        # THEN replace ifs and fors
+
+        def is_func_pure(name):
+            # go bottom up
+            # YES for primitives
+
+            # we need to replace ALL math operations with __add__ etc
+            # THEN - we need to figure out types
+            # we need to resolve func names to actual functions
+            pass
         # is_func_pure
         # e.g. NO for print
         # YES for list, map, math, boolean expressions
@@ -222,19 +249,49 @@ class Compiler:
     def resolve_evals(func):
         # TODO: resolved evals, getattrs and setattrs
         return func
-    
+
     @staticmethod
     def DCE(func):
         # TODO: remove if False, unused vars
         return func
 
 
+def dec(x):
+    print(x)
+    return x
+
+def imdec(f):
+    print('imdec', f)
+    return f
+setattr(imdec, '__set_name__', lambda *args: print('imdec setname', args))
+
+class dec:
+    def __init__(self, fn):
+        self.fn = fn
+        print(fn)
+
+    def __set_name__(self, owner, name):
+        setattr(owner, name, self.fn)
+        print(owner, name)
+
+class A:
+    @imdec
+    @dec
+    @imdec
+    def test(self):
+        return 2
+
+    @imdec
+    def x(self):
+        pass
+print(A().test())
+
 def gen_vector(dim, type, *, coords=None):
     class Vector:
         # Compiler.DCE
         # @Compiler.resolve_evals
-        # @Compiler.expand_constants
-        @Compiler.inject_nonlocals
+        @Compiler.expand_constants
+        # @Compiler.inject_nonlocals
         @Compiler.signature(['x', 'y'])
         def __init__(self, *_, **__):
             if coords:
