@@ -1,147 +1,7 @@
 import inspect
 import ast
 import textwrap
-
-
-class CodeEditor:
-    def __init__(self) -> None:
-        self.source_func = None
-        self.code = None
-
-    @property
-    def name(self):
-        if self.source_func is not None:
-            return self.source_func.__name__
-
-    @property
-    def filename(self):
-        if self.source_func is not None:
-            return inspect.getsourcefile(self.source_func)
-
-    def get_scope(self):
-        if self.source_func is not None:
-            return Scope.from_func(self.source_func)
-
-    def load(self, obj):
-        if inspect.isfunction(obj):
-            func = obj
-            self.source_func = func
-            filename = inspect.getsourcefile(func)
-            if hasattr(func, '__2c_source__'):
-                source = ast.unparse(func.__2c_source__)
-            else:
-                source = inspect.getsource(func)
-                source = textwrap.dedent(source)
-            code = ast.parse(source, mode='exec', filename=filename)
-            code: ast.FunctionDef = code.body[0]
-            self.code = code
-
-    def compile_func(self):
-        scope = Scope.from_func(self.source_func)
-        func = scope.eval(self.code)
-        return func
-
-    @staticmethod
-    def create_constant_node(value):
-        value_repr = repr(value)
-        node = ast.parse(value_repr, mode='eval', filename='<twocode>')
-        node = node.body
-        return node
-
-
-class Scope:
-    def __init__(self) -> None:
-        self.builtins = {}
-        self.globals = {}
-        self.nonlocals = {}
-        self.var_names = set()
-        self.filename = None
-
-    @staticmethod
-    def from_func(func):
-        scope = Scope()
-        closure = inspect.getclosurevars(func)
-        scope.builtins = closure.builtins
-        scope.globals = closure.globals
-        scope.nonlocals = closure.nonlocals
-        edit = CodeEditor()
-        edit.load(func)
-        scope.var_names = {node.id for node in ast.walk(
-            edit.code) if isinstance(node, ast.Name)}
-        args = edit.code.args
-        for arg_list in [args.posonlyargs, args.args, args.kwonlyargs, [args.vararg, args.kwarg]]:
-            for arg in arg_list:
-                if arg is None:
-                    continue
-                scope.var_names.add(arg.arg)
-        for outer_scope in [scope.builtins, scope.globals, scope.nonlocals]:
-            scope.var_names -= outer_scope.keys()
-        scope.filename = inspect.getsourcefile(func)
-        return scope
-
-    @property
-    def all_used_names(self) -> set[str]:
-        names = set()
-        names.update(self.builtins.keys())
-        names.update(self.globals.keys())
-        names.update(self.nonlocals.keys())
-        names.update(self.var_names)
-        return names
-
-    def free_name(self, name=None):
-        names = self.all_used_names
-        if name:
-            s = name
-            num = 1
-            while s in names:
-                num += 1
-                s = f'{name}_{num}'
-            return s
-        else:
-            num = 0
-            s = '_0'
-            while s in names:
-                num += 1
-                s = f'_{num}'
-            return s
-
-    def eval(self, node):
-        scope = {}
-        scope.update(self.globals)
-        scope['nonlocals'] = self.nonlocals
-        args = ast.arguments(
-            posonlyargs=[],
-            args=[],
-            kwonlyargs=[],
-            kw_defaults=[],
-            defaults=[]
-        )
-        body = [node]
-
-        for name in self.nonlocals.keys():
-            assign_node = ast.Assign(targets=[ast.Name(name, ctx=ast.Store())],
-                                     value=ast.Subscript(
-                value=ast.Name(id='nonlocals', ctx=ast.Load()),
-                slice=ast.Constant(value=name),
-                ctx=ast.Load())
-            )
-            body.insert(0, assign_node)
-
-        name = None
-        if isinstance(node, ast.FunctionDef):
-            name = node.name
-        body.append(ast.Return(
-            value=ast.Name(id=name, ctx=ast.Load())
-        ))
-
-        code = ast.FunctionDef('closure', args, body, decorator_list=[])
-        code = ast.Module([code], type_ignores=[])
-        ast.fix_missing_locations(code)
-        code_obj = compile(code, filename=self.filename, mode='exec')
-        exec(code_obj, scope)
-        obj = scope['closure']()
-        obj.__2c_source__ = node
-        return obj
+import twocode.compiler as tc_compiler
 
 
 def class_method_decorator(func):
@@ -158,7 +18,7 @@ class Compiler:
     @staticmethod
     def signature(args):
         def wrap(func):
-            edit = CodeEditor()
+            edit = tc_compiler.CodeEditor()
             edit.load(func)
             code: ast.FunctionDef = edit.code
             code.decorator_list = []
@@ -176,14 +36,14 @@ class Compiler:
 
     @staticmethod
     def inject_nonlocals(func):
-        edit = CodeEditor()
+        edit = tc_compiler.CodeEditor()
         edit.load(func)
         func_code: ast.FunctionDef = edit.code
         scope = edit.get_scope()
         for name, value in list(scope.nonlocals.items()):
             del scope.nonlocals[name]
             free_name = scope.free_name(name)
-            value_node = CodeEditor.create_constant_node(value)
+            value_node = tc_compiler.CodeEditor.create_constant_node(value)
             assign_node = ast.Assign(
                 targets=[ast.Name(id=free_name, ctx=ast.Store())],
                 value=value_node
@@ -243,6 +103,11 @@ class Compiler:
 
         # replace ifs with True or False
         # unroll loops
+
+        comp = tc_compiler.Compiler()
+        comp.add_method(func, cls)
+        comp.analyze()
+
         return func
 
     @ staticmethod
@@ -260,10 +125,14 @@ def dec(x):
     print(x)
     return x
 
+
 def imdec(f):
     print('imdec', f)
     return f
+
+
 setattr(imdec, '__set_name__', lambda *args: print('imdec setname', args))
+
 
 class dec:
     def __init__(self, fn):
@@ -273,6 +142,7 @@ class dec:
     def __set_name__(self, owner, name):
         setattr(owner, name, self.fn)
         print(owner, name)
+
 
 class A:
     @imdec
@@ -284,14 +154,17 @@ class A:
     @imdec
     def x(self):
         pass
+
+
 print(A().test())
+
 
 def gen_vector(dim, type, *, coords=None):
     class Vector:
         # Compiler.DCE
         # @Compiler.resolve_evals
         @Compiler.expand_constants
-        # @Compiler.inject_nonlocals
+        @Compiler.inject_nonlocals
         @Compiler.signature(['x', 'y'])
         def __init__(self, *_, **__):
             if coords:
