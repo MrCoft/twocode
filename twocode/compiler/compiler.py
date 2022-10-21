@@ -33,6 +33,10 @@ class Compiler:
             print()
             print(ast.unparse(edit.code))
 
+            tc_compiler.ops_to_funcs(edit.code)
+            print()
+            print(ast.unparse(edit.code))
+
         print()
         for method in self.methods:
             func = method.method

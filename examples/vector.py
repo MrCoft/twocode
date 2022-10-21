@@ -168,8 +168,9 @@ def gen_vector(dim, type, *, coords=None):
         @Compiler.signature(['x', 'y'])
         def __init__(self, *_, **__):
             if coords:
-                for c in coords:
-                    setattr(self, c, eval(c))
+                if coords:
+                    for c in coords:
+                        setattr(self, c, eval(c))
     Vector.__name__ = f'{type}{dim}'
     return Vector
 
