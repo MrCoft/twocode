@@ -32,19 +32,25 @@ namespace MyFirstUnitTests
         [Fact]
         public void LanguageWorks()
         {
-            var builder = Host.CreateApplicationBuilder();
-            builder.Services.AddSingleton<IParser, Parser>();
-            using var host = builder.Build();
+            // var builder = Host.CreateApplicationBuilder();
+            // builder.Services.AddSingleton<IParser, Parser>();
+            // using var host = builder.Build();
             
             // or just use ServiceCollection
             // using serviceProvider
             
             // await host.RunAsync();
 
-            using var serviceScope = host.Services.CreateScope();
-            var provider = serviceScope.ServiceProvider;
+            var services = new ServiceCollection();
+
+            services.AddSingleton<IParser, Parser>();
+
+            using var serviceProvider = services.BuildServiceProvider();
+
+            // using var serviceScope = host.Services.CreateScope();
+            // var provider = serviceScope.ServiceProvider;
             
-            var parser = provider.GetRequiredService<IParser>();
+            var parser = serviceProvider.GetRequiredService<IParser>();
             
             // var parser = new Parser();
             var language = new Language(parser);
